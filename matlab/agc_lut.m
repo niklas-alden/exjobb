@@ -34,8 +34,8 @@ function [gain] = agc_lut(~)
     % 2 = ideal
     % 3 = tanh
     % 4 = polynomial
-    gain = lut(:,3);
-end
+    gain = lut(:,4);
+
 
 % clf;
 % subplot(211)
@@ -47,7 +47,7 @@ end
 % subplot(212)
 % plot(P_in, lut(:,2:end))
 % grid on
-
+end
 % %% polynomial
 % clf
 % x_poly = [60 61 105 106];

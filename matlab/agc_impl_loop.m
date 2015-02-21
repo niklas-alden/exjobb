@@ -1,12 +1,12 @@
 clear all; clf;
 
 bits = 16;                      % resolution
-load handel; in = y(1:1e4); % input signal
+% load handel; in = y(1:1e4); % input signal
 % in(17000:18000) = 0;
 % in(18001:19000) = 1;
 % in(19001:20000) = 0;
 % in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
-% in = zeros(1,300); in(2:end) = 1;
+in = ones(1,1000).*1e-3; in(50:300) = 1;
 
 in_hp = zeros(size(in));        % allocate high pass filtered input signal array
 in_fix = zeros(size(in), 'int16');   % allocate fixed point input signal array
@@ -74,10 +74,10 @@ subplot(312)
 % plot(1:length(in), 10.*log10(double(in_fix_filtered_no_gain).^2), 'b',...
 %      1:length(in), 10.*log10(double(in_fix_filtered).^2), 'r--')
 plot(...
+    1:length(in), 20.*log10(double(in_fix_filtered_no_gain)), 'm',...
     1:length(in), 20.*log10(double(out_agc)), 'g',...
-    1:length(in), 20.*log10(double(in_fix_filtered_no_gain)), 'm--',...
     1:length(in), 82, 'r--', 1:length(in), P, 'b-')
-legend('P_{out}', 'P_{in}', 'P_{max}', 'P', 'Location','southeast')
+legend('P_{in}', 'P_{out}', 'P_{max}', 'P', 'Location','southeast')
 
 
 

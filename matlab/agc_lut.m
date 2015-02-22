@@ -3,7 +3,7 @@ function [gain] = agc_lut(~)
     n = 100;
     P_in = 1:n;
 
-    lut = ones(n,4);
+    lut = ones(n,7);
     lut(:,1) = 1:n;
 
     % ideal
@@ -16,39 +16,65 @@ function [gain] = agc_lut(~)
         end
     end
     
-    % tanh
+    % tanh 1, index 3
     a = 0.015;
-    b = 65; % var 82 innan
+    b = 82;
     y_tanh = b .* (1 - exp(-a.*2.*P_in)) ./ (1 + exp(-a.*2.*P_in));
-    lut(1:end, 3) = y_tanh(1:end) ./ P_in(1:end);
-
-    % polynomial
-    x_poly = [20 50 51];%x_poly = [60 61 105 106];
-    y_poly = [20 45 45];%y_poly = [60 61 82 82];
+    lut(57:end, 3) = y_tanh(57:end) ./ P_in(57:end);
+    
+    % tanh 2, index 4
+    a = 0.015;
+    b = 65; 
+    y_tanh = b .* (1 - exp(-a.*2.*P_in)) ./ (1 + exp(-a.*2.*P_in));
+    lut(1:end, 4) = y_tanh(1:end) ./ P_in(1:end);
+  
+    % polynomial 1, index 5
+    x_poly = [60 61 105 106];
+    y_poly = [60 61 82 82];
     p_coeff = polyfit(x_poly, y_poly, 2);
     yy = polyval(p_coeff, P_in);
-%     lut(62:104, 4) = yy(62:104) ./ P_in(62:104);
-%     lut(105:end, 4) = lut(105:end, 2);
-    lut(44:end, 4) = yy(44:end) ./ P_in(44:end);
-%     lut(105:end, 4) = lut(105:end, 2);
+    lut(62:end, 5) = yy(62:end) ./ P_in(62:end);
+%     lut(105:end, 5) = lut(105:end, 2);
+    
+    % polynomial 2, index 6
+    x_poly = [20 50 51];
+    y_poly = [20 45 45];
+    p_coeff = polyfit(x_poly, y_poly, 2);
+    yy = polyval(p_coeff, P_in);
+    lut(44:end, 6) = yy(44:end) ./ P_in(44:end);
+    
+    % polynomial 3, index 7
+    x_poly = [38 56 75 80];
+    y_poly = [40 46 42 40];
+    p_coeff = polyfit(x_poly, y_poly, 3);
+    yy = polyval(p_coeff, P_in);
+    lut(43:end, 7) = yy(43:end) ./ P_in(43:end);
     
     % return prefered lookup table
     % 2 = ideal
-    % 3 = tanh
-    % 4 = polynomial
-    gain = lut(:,4);
+    % 3 = tanh 1
+    % 4 = tanh 2
+    % 5 = polynomial 1
+    % 6 = polynomial 2
+    % 7 = polynomial 3
+    gain = lut(:,3);
 
 
-% clf;
+clf;
 figure(2)
 subplot(211)
-plot(P_in, P_in'.*lut(P_in,2), 'b--')
+plot(P_in, P_in'.*lut(P_in,2), 'b')
 hold on
 grid on
 plot(P_in, P_in'.*lut(P_in,3), 'g')
-plot(P_in, P_in'.*lut(P_in,4), 'r')
+plot(P_in, P_in'.*lut(P_in,4), 'g--')
+plot(P_in, P_in'.*lut(P_in,5), 'r')
+plot(P_in, P_in'.*lut(P_in,6), 'r--')
+plot(P_in, P_in'.*lut(P_in,7), 'r.')
+legend('2','3','4','5','6','7','Location','northwest')
 subplot(212)
 plot(P_in, lut(:,2:end))
+legend('2','3','4','5','6','7','Location','southwest')
 grid on
 
 end

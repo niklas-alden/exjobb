@@ -1,12 +1,12 @@
 clear all; clf;
 
 bits = 16;                      % resolution
-% load handel; in = y(1:1e4); % input signal
+% load handel; in = y(1:end).*1; % input signal
 % in(17000:18000) = 0;
 % in(18001:19000) = 1;
 % in(19001:20000) = 0;
-% in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
-in = ones(1,1000).*1e-3; in(50:300) = 1;
+in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
+% in = ones(1,1000).*1e-4; in(50:600) = 1;
 
 in_hp = zeros(size(in));        % allocate high pass filtered input signal array
 in_fix = zeros(size(in), 'int16');   % allocate fixed point input signal array
@@ -23,8 +23,8 @@ P_prev = int32(1);              % Previous power value of input signal (memory)
 LUT = agc_lut();                % Lookup table with gain values
 gain_used = zeros(size(in));
 % tune parameters
-alpha = 0.001;                   % attack time ~ < 5ms
-beta  = 0.06;                    % release time ~ 30-40ms
+alpha = 0.005;                   % attack time ~ < 5ms
+beta  = 0.05;                    % release time ~ 30-40ms
 
 for n = 1:length(in)
     % ----- HIGH PASS FILTER -----
@@ -68,23 +68,20 @@ figure(1)
 subplot(311)
 plot(1:length(in), in_fix_filtered_no_gain, 1:length(in), out.*2.^(bits-1), 'r--')
 legend('in','out','Location','southeast')
-%plot(out)
 
 subplot(312)
 % plot(1:length(in), 10.*log10(double(in_fix_filtered_no_gain).^2), 'b',...
 %      1:length(in), 10.*log10(double(in_fix_filtered).^2), 'r--')
-plot(...
-    1:length(in), 20.*log10(double(in_fix_filtered_no_gain)), 'm',...
-    1:length(in), 20.*log10(double(out_agc)), 'g',...
-    1:length(in), 82, 'r--', 1:length(in), P, 'b-')
+plot(1:length(in), real(20.*log10(double(in_fix_filtered_no_gain))), 'm',...
+     1:length(in), real(20.*log10(double(out_agc))), 'g',...
+     1:length(in), 82, 'r--', 1:length(in), P, 'b-')
 legend('P_{in}', 'P_{out}', 'P_{max}', 'P', 'Location','southeast')
 
+subplot(313)
+plot(1:length(in), gain_used)
+% plot(1:length(in), in_fix_filtered - out_agc)
+legend('gain','Location','southeast')
 
-
- subplot(313)
- plot(1:length(in), gain_used)
- % plot(1:length(in), in_fix_filtered - out_agc)
- legend('gain','Location','southeast')
 % figure(2)
 % plot(abs(in - out), 'r')        % plot error of filtered output
 % hold on

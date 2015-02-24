@@ -2,11 +2,8 @@ clear all; clf;
 
 bits = 16;                      % resolution
 % load handel; in = y(1:end).*1; % input signal
-% in(17000:18000) = 0;
-% in(18001:19000) = 1;
-% in(19001:20000) = 0;
-in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
-% in = ones(1,1000).*1e-4; in(50:600) = 1;
+% in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
+in = ones(1,1200).*1e-4; in(50:600) = 1;
 
 in_hp = zeros(size(in));        % allocate high pass filtered input signal array
 in_fix = zeros(size(in), 'int16');   % allocate fixed point input signal array
@@ -17,11 +14,21 @@ out_agc = zeros(size(in), 'int16');
 out = zeros(size(in));          % allocate output signal array
 P = zeros(size(in), 'int32');   % allocate power of fixed point input signal array
 P_tmp = zeros(size(in), 'int32');   % allocate power of fixed point input signal array
-[B_hp, A_hp] = high_pass_filter();  % get high pass filter coefficients
-[B_eq, A_eq] = def_iir_filter();    % get eq. filter coefficients
 P_prev = int32(1);              % Previous power value of input signal (memory)
 LUT = agc_lut();                % Lookup table with gain values
 gain_used = zeros(size(in));
+% high pass filter parameters
+[B_hp, A_hp] = high_pass_filter();  % get high pass filter coefficients
+% y_hp_pre = 0;
+% y_hp_pre_pre = 0;
+% x_hp_pre = 0;
+% x_hp_pre_pre = 0;
+% equalizer filter parameters
+[B_eq, A_eq] = def_iir_filter();    % get eq. filter coefficients
+y_eq_pre = int32(0);
+y_eq_pre_pre = int32(0);
+x_eq_pre = int32(0);
+x_eq_pre_pre = int32(0);
 % tune parameters
 alpha = 0.005;                   % attack time ~ < 5ms
 beta  = 0.05;                    % release time ~ 30-40ms
@@ -35,8 +42,15 @@ for n = 1:length(in)
     out_no_filter(n) = double(in_fix(n)) ./ 2.^(bits-1);  % to compare outputs
     
     % ----- EQ. FILTER -----
-    y_eq = filter(B_eq, A_eq, double(in_fix(n)));   % filtering with IIR filter
-    in_fix_filtered(n) = y_eq ./ 128;               % scale down filter output
+%     y_eq = filter(B_eq, A_eq, double(in_fix(n)));   % filtering with IIR filter
+    y_eq = int32(-A_eq(2)*int32(y_eq_pre) - A_eq(3)*int32(y_eq_pre_pre) + B_eq(1)*int32(in_fix(n)) + B_eq(2)*int32(x_eq_pre) + B_eq(3)*int32(x_eq_pre_pre));
+    x_eq_pre_pre = int32(x_eq_pre);
+    x_eq_pre = int32(in_fix(n));
+    y_eq_pre_pre = int32(y_eq_pre);
+    y_eq_pre = int32(y_eq);
+    
+    
+    in_fix_filtered(n) = int16(y_eq) ./ 128;               % scale down filter output
     in_fix_filtered_no_gain(n) = in_fix_filtered(n);
 
     % ----- AGC -----

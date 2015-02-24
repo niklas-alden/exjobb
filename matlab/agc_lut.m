@@ -34,7 +34,6 @@ function [gain] = agc_lut(~)
     p_coeff = polyfit(x_poly, y_poly, 2);
     yy = polyval(p_coeff, P_in);
     lut(62:end, 5) = yy(62:end) ./ P_in(62:end);
-%     lut(105:end, 5) = lut(105:end, 2);
     
     % polynomial 2, index 6
     x_poly = [20 50 51];
@@ -59,28 +58,28 @@ function [gain] = agc_lut(~)
     % 7 = polynomial 3
     gain = lut(:,5);
 
-
-% clf;
-% figure(2)
-% subplot(211)
-% plot(P_in, P_in'.*lut(P_in,2), 'b')
-% hold on
-% grid on
-% plot(P_in, P_in'.*lut(P_in,3), 'g')
-% plot(P_in, P_in'.*lut(P_in,4), 'g--')
-% plot(P_in, P_in'.*lut(P_in,5), 'r')
-% plot(P_in, P_in'.*lut(P_in,6), 'r--')
-% plot(P_in, P_in'.*lut(P_in,7), 'r.')
-% legend('2','3','4','5','6','7','Location','northwest')
-% xlabel('P_{in}')
-% ylabel('P_{out}')
-% subplot(212)
-% plot(P_in, lut(:,2:end))
-% legend('2','3','4','5','6','7','Location','southwest')
-% xlabel('P_{in}')
-% ylabel('gain')
-% grid on
-
+if 1 == 0
+    clf;
+    figure(2)
+    subplot(211)
+    plot(P_in, P_in'.*lut(P_in,2), 'b') % 2
+    hold on
+    grid on
+    plot(P_in, P_in'.*lut(P_in,3), 'g') % 3
+    plot(P_in, P_in'.*lut(P_in,4), 'g--') % 4
+    plot(P_in, P_in'.*lut(P_in,5), 'r') % 5
+    % plot(P_in, P_in'.*lut(P_in,6), 'r--') % 6
+    % plot(P_in, P_in'.*lut(P_in,7), 'r.') % 7
+    legend('2','3','4','5','Location','northwest')
+    xlabel('P_{in}')
+    ylabel('P_{out}')
+    subplot(212)
+    plot(P_in, lut(:,2:5))
+    legend('2','3','4','5','Location','southwest')
+    xlabel('P_{in}')
+    ylabel('gain')
+    grid on
+end
 end
 
 % %% polynomial

@@ -57,29 +57,29 @@ function [gain] = agc_lut(~)
     % 5 = polynomial 1
     % 6 = polynomial 2
     % 7 = polynomial 3
-    gain = lut(:,7);
+    gain = lut(:,5);
 
 
-clf;
-figure(2)
-subplot(211)
-plot(P_in, P_in'.*lut(P_in,2), 'b')
-hold on
-grid on
-plot(P_in, P_in'.*lut(P_in,3), 'g')
-plot(P_in, P_in'.*lut(P_in,4), 'g--')
-plot(P_in, P_in'.*lut(P_in,5), 'r')
-plot(P_in, P_in'.*lut(P_in,6), 'r--')
-plot(P_in, P_in'.*lut(P_in,7), 'r.')
-legend('2','3','4','5','6','7','Location','northwest')
-xlabel('P_{in}')
-ylabel('P_{out}')
-subplot(212)
-plot(P_in, lut(:,2:end))
-legend('2','3','4','5','6','7','Location','southwest')
-xlabel('P_{in}')
-ylabel('gain')
-grid on
+% clf;
+% figure(2)
+% subplot(211)
+% plot(P_in, P_in'.*lut(P_in,2), 'b')
+% hold on
+% grid on
+% plot(P_in, P_in'.*lut(P_in,3), 'g')
+% plot(P_in, P_in'.*lut(P_in,4), 'g--')
+% plot(P_in, P_in'.*lut(P_in,5), 'r')
+% plot(P_in, P_in'.*lut(P_in,6), 'r--')
+% plot(P_in, P_in'.*lut(P_in,7), 'r.')
+% legend('2','3','4','5','6','7','Location','northwest')
+% xlabel('P_{in}')
+% ylabel('P_{out}')
+% subplot(212)
+% plot(P_in, lut(:,2:end))
+% legend('2','3','4','5','6','7','Location','southwest')
+% xlabel('P_{in}')
+% ylabel('gain')
+% grid on
 
 end
 

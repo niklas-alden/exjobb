@@ -1,7 +1,7 @@
 clear all; clf;
 
 bits = 16;                      % resolution
-load handel; in = y(1:end).*0.3; % input signal
+load handel; in = y(1:5000).*1; % input signal
 % in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
 % in = ones(1,1200).*1e-4; in(50:600) = 1;
 
@@ -46,9 +46,6 @@ for n = 1:length(in)
     y_hp_pre = int32(in_hp);
     
     in_hp_fix(n) = int16(in_hp);
-    % ----- FIXED POINT -----
-%     in_fix(n) = round((in_hp) .* 2.^(bits-1));   % scale up to 2^bits-1 and round off to integer
-%     out_no_filter(n) = double(in_fix(n)) ./ 2.^(bits-1);  % to compare outputs
     
     % ----- EQ. FILTER -----
 %     y_eq = filter(B_eq, A_eq, double(in_fix(n)));   % filtering with IIR filter
@@ -64,17 +61,17 @@ for n = 1:length(in)
 
     % ----- AGC -----
     % P(n) = (1 - lambda)*P(n-1) + lambda*(x(n)^2), lambda = (alpha, beta)
-    P_in = int32(abs(in_fix_filtered(n))).^2;
-    P_a = int32((1 - alpha).*P_prev + int32(alpha.*P_in)); 
-    P_b = int32((1 - beta) .*P_prev + int32(beta .*P_in)); 
-    if P_a > P_prev
-        P_tmp(n) = P_a;
+    P_in = int32(abs(in_fix_filtered(n)).^2);
+    
+    if P_in > P_prev
+        P_tmp(n) = int32((1 - alpha).*P_prev + int32(alpha.*P_in)); 
+%         P_tmp(n) = P_a;
     else
-        P_tmp(n) = P_b;
+        P_tmp(n) = int32((1 - beta) .*P_prev + int32(beta .*P_in)); 
+%         P_tmp(n) = P_b;
     end
 
     P(n) = 10.*log10(double(P_tmp(n))); % convert to dB
-    P_prev = P_tmp(n); 
     
     if round(P(n)) > 1 % avoid index 0
         out_agc(n) = int16(in_fix_filtered(n) .* LUT(round(P(n))));
@@ -83,7 +80,9 @@ for n = 1:length(in)
         out_agc(n) = int16(in_fix_filtered(n));
         gain_used(n) = 1;
     end
-%     
+
+    P_prev = int32(abs(int32(out_agc(n))).^2);
+
     out(n) = double(out_agc(n)) ./ 2.^(bits-1);    % scale down so -1 < output < 1
 %     out(n) = double(in_fix_filtered(n)) ./ 2.^(bits-1);    % scale down so -1 < output < 1
 %     out(n) = double(in_hp_fix(n)) ./ 2.^(bits-1);    % scale down so -1 < output < 1

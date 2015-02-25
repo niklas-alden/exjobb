@@ -1,8 +1,11 @@
 clear all; close all;
 
 bits = 16;                      % resolution
-load handel;                    % input signal
-in = y;
+% load handel;                    % input signal
+% in = y;
+in = audioread('Speech_all.wav'); in = in(1:end).*1;
+% in = audioread('p50_male.wav'); in = in(1:5e4).*1;
+% in = audioread('p50_female.wav'); in = in(1:5e4).*1;
 
 % ----- HIGH PASS FILTER -----
 [B, A] = high_pass_filter();

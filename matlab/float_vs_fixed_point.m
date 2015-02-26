@@ -10,7 +10,7 @@ variance = zeros(max_bits,1);
 for bits = 1:max_bits
     in_fixed = round(in .* 2.^(bits-1));
     out = in_fixed ./ 2.^(bits-1);
-    variance(bits) = var(abs(in-out))
+    variance(bits) = var(abs(in-out));
 end
 subplot(211)
 plot(variance);

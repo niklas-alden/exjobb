@@ -4,7 +4,7 @@ bits = 16;              % resolution of data
 filter_bits = 10;       % resolution of filter coefficients
 % load handel; in = y(1:5000).*1; % input signal
 % in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
-% in = audioread('Speech_all.wav'); in = in(1:3e4).*1;
+% in = audioread('Speech_all.wav'); in = in(1:2e4).*1;
 % in = audioread('p50_male.wav'); in = in(1:5e4).*1;
 % in = audioread('p50_female.wav'); in = in(1:5e4).*1;
 % in = ones(1,1200).*1e-4; in(50:600) = 1;
@@ -90,15 +90,15 @@ for n = 1:length(in)
         P_tmp(n) = int32((1 - beta) .*P_prev + int32(beta .*P_in)); 
     end
 
-    if P_tmp(n) > 0 % avoid log10 of 0
-        P(n) = 10.*log10(double(P_tmp(n))); % convert to dB
+    if P_tmp(n) ~= 0 % avoid log10 of 0
+        P(n) = 10.*log10(double(P_tmp(n)) / 158489319); % convert to dB, 82 dB as referense
     else
-        P(n) = 0;
+        P(n) = -82;
     end
     
-    if round(P(n)) > 0 % avoid index 0
-        out_agc(n) = int32(in_fix_filtered(n) .* LUT(round(P(n))));
-        gain_used(n) = LUT(round(P(n)));
+    if round(P(n)) > -82 % avoid index 0
+        out_agc(n) = int32(in_fix_filtered(n) .* LUT(round(P(n) + 82)));
+        gain_used(n) = LUT(round(P(n) + 82));
     else
         out_agc(n) = int32(in_fix_filtered(n));
         gain_used(n) = 1;
@@ -121,10 +121,10 @@ legend('in','out','Location','eastoutside')
 subplot(312)
 % plot(1:length(in), 10.*log10(double(in_fix_filtered_no_gain).^2), 'b',...
 %      1:length(in), 10.*log10(double(in_fix_filtered).^2), 'r--')
-plot(1:length(in), real(20.*log10(double(in_fix_filtered_no_gain))), 'm',...
-     1:length(in), real(20.*log10(double(out_agc))), 'g--',...
-     1:length(in), P, 'b-', 1:length(in), 82, 'r--')
-legend('P_{in}', 'P_{out}', 'P', 'P_{max}', 'Location','eastoutside')
+plot(1:length(in), real(20.*log10(double(in_fix_filtered_no_gain))) - 82, 'm',...
+     1:length(in), real(20.*log10(double(out_agc))) - 82, 'g--',...
+     1:length(in), 0, 'r--', 1:length(in), P, 'b-')
+legend('P_{in}', 'P_{out}', 'P_{max}', 'P', 'Location','eastoutside')
 % plot(1:length(in), P, '', 1:length(in), 82, 'r--')
 % legend('P', 'P_{max}', 'Location','southeast')
 

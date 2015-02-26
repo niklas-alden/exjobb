@@ -1,9 +1,10 @@
 clear all; clf;
 
-bits = 16;                      % resolution
+bits = 16;              % resolution of data
+filter_bits = 10;       % resolution of filter coefficients
 % load handel; in = y(1:5000).*1; % input signal
 % in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
-in = audioread('Speech_all.wav'); in = in(1:end).*1;
+in = audioread('Speech_all.wav'); in = in(1:5e4).*1;
 % in = audioread('p50_male.wav'); in = in(1:5e4).*1;
 % in = audioread('p50_female.wav'); in = in(1:5e4).*1;
 % in = ones(1,1200).*1e-4; in(50:600) = 1;
@@ -27,15 +28,15 @@ gain_used = zeros(size(in));
 
 % high pass filter parameters
 [B_1, A_1] = high_pass_filter();  % get high pass filter coefficients
-B_hp = int32(B_1 .* 2^(bits-1));
-A_hp = int32(A_1 .* 2^(bits-1));
+B_hp = int32(B_1 .* 2^(filter_bits-1));
+A_hp = int32(A_1 .* 2^(filter_bits-1));
 y_hp_pre = int32(0);
 x_hp_pre = int32(0);
 
 % equalizer filter parameters
 [B_2, A_2] = def_iir_filter();    % get eq. filter coefficients
-B_eq = int32(B_2 .* 2^(bits-1));
-A_eq = int32(A_2 .* 2^(bits-1));
+B_eq = int32(B_2 .* 2^(filter_bits-1));
+A_eq = int32(A_2 .* 2^(filter_bits-1));
 y_eq_pre = int32(0);
 y_eq_pre_pre = int32(0);
 x_eq_pre = int32(0);
@@ -43,7 +44,7 @@ x_eq_pre_pre = int32(0);
 
 % tune parameters
 alpha = 0.005;                   % attack time ~ < 5ms
-beta  = 0.05;                    % release time ~ 30-40ms
+beta  = 0.03;                    % release time ~ 30-40ms
 
 for n = 1:length(in)
     % ----- FIXED POINT -----
@@ -54,11 +55,11 @@ for n = 1:length(in)
     in_hp = int32(int32(int32(-A_hp(2))* int32(y_hp_pre))...
                 + int32(int32(B_hp(1)) * int32(in_fix(n)))...
                 + int32(int32(B_hp(2)) * int32(x_hp_pre)));
-    in_hp = in_hp ./ 2^(bits-1);
+    in_hp = in_hp ./ 2^(filter_bits-1);
     x_hp_pre = int32(in_fix(n));
     y_hp_pre = int32(in_hp);
     
-    in_hp_fix(n) = int32(in_hp / 1);
+    in_hp_fix(n) = int32(in_hp);
 %     in_hp_fix(n) = int16(in_fix(n)); % bypass high pass filter
     
     % ----- EQ. FILTER -----
@@ -68,13 +69,13 @@ for n = 1:length(in)
                + int32(int32(B_eq(1)) * int32(in_hp_fix(n)))...
                + int32(int32(B_eq(2)) * int32(x_eq_pre))...
                + int32(int32(B_eq(3)) * int32(x_eq_pre_pre)));
-    y_eq = y_eq ./ 2^(bits-1);
+    y_eq = y_eq ./ 2^(filter_bits-1);
     x_eq_pre_pre = int32(x_eq_pre);
     x_eq_pre = int32(in_hp_fix(n));
     y_eq_pre_pre = int32(y_eq_pre);
     y_eq_pre = int32(y_eq);
     
-    in_fix_filtered(n) = int32(y_eq ./ 1);               % scale down filter output
+    in_fix_filtered(n) = int32(y_eq ./ 128);               % scale down filter output
     
 %     in_fix_filtered(n) = int32(in_hp_fix(n)); % bypass eq filter
     in_fix_filtered_no_gain(n) = in_fix_filtered(n);
@@ -96,10 +97,10 @@ for n = 1:length(in)
     end
     
     if round(P(n)) > 1 % avoid index 0
-        out_agc(n) = int16(in_fix_filtered(n) .* LUT(round(P(n))));
+        out_agc(n) = int32(in_fix_filtered(n) .* LUT(round(P(n))));
         gain_used(n) = LUT(round(P(n)));
     else
-        out_agc(n) = int16(in_fix_filtered(n));
+        out_agc(n) = int32(in_fix_filtered(n));
         gain_used(n) = 1;
     end
 
@@ -115,13 +116,13 @@ clf
 subplot(311)
 plot(1:length(in), in, 1:length(in), out, 'r--')
 % plot(1:length(in), in_fix_filtered_no_gain, 1:length(in), out.*2.^(bits-1), 'r--')
-legend('in','out','Location','southeast')
+% legend('in','out','Location','southeast')
 
 subplot(312)
 % plot(1:length(in), 10.*log10(double(in_fix_filtered_no_gain).^2), 'b',...
 %      1:length(in), 10.*log10(double(in_fix_filtered).^2), 'r--')
 plot(1:length(in), real(20.*log10(double(in_fix_filtered_no_gain))), 'm',...
-     1:length(in), real(20.*log10(double(out_agc))), 'g',...
+     1:length(in), real(20.*log10(double(out_agc))), 'g--',...
      1:length(in), 82, 'r--', 1:length(in), P, 'b-')
 legend('P_{in}', 'P_{out}', 'P_{max}', 'P', 'Location','southeast')
 % plot(1:length(in), P, '', 1:length(in), 82, 'r--')

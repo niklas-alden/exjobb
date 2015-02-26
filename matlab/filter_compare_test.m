@@ -1,12 +1,13 @@
 clf; clear all;
 [B, A] = def_iir_filter(); 
 
-bits = 10 - 1;
-B_matlab = int32(B .* 2^bits);
-A_matlab = int32(A .* 2^bits);
+bits = 16 - 1;
+filter_bits = 10 - 1;
+B_matlab = int32(B .* 2^filter_bits);
+A_matlab = int32(A .* 2^filter_bits);
 
-B_eq = int32(B .* 2^bits); 
-A_eq = int32(A .* 2^bits);
+B_eq = int32(B .* 2^filter_bits); 
+A_eq = int32(A .* 2^filter_bits);
 
 % load handel; in = y;
 in = audioread('Speech_all.wav'); 
@@ -30,7 +31,7 @@ for n = t
                + int32(int32(B_eq(3)) * int32(x_pre_pre))...
                - int32(int32(A_eq(2)) * int32(y_pre))...
                - int32(int32(A_eq(3)) * int32(y_pre_pre)));
-    y(n) = y(n) ./ 2^bits;
+    y(n) = y(n) ./ 2^filter_bits;
     x_pre_pre = int32(x_pre);
     x_pre = int32(in_fix(n));
     y_pre_pre = int32(y_pre);
@@ -53,10 +54,10 @@ end
 
 in_fix_no_filter = double(in_fix) ./ 2^bits;
 
-y2_scaled = y2 ./ 180;
+y2_scaled = y2 ./ 128;
 out_matlab_filter = double(y2_scaled) ./ 2^bits;
 
-y_scaled = y ./ 180;
+y_scaled = y ./ 128;
 out = double(y_scaled) ./ 2^bits;
 
 clf

@@ -2,7 +2,7 @@ function [ B,A ] = def_iir_filter( ~ )
 %DEF_IIR_FILTER Return polynomial coefficients for the default IIR filter
 %   Detailed explanation goes here
 
-    downscale = 128;
+    downscale = 1;
     
     T = 1/8000;
     R2 = 16.8e3;

@@ -4,8 +4,8 @@ bits = 16;              % resolution of data
 filter_bits = 10;       % resolution of filter coefficients
 % load handel; in = y(1:5000).*1; % input signal
 % in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
-% in = audioread('Speech_all.wav'); in = in(1:3e4).*1;
-in = audioread('p50_male.wav'); in = in(62e3:64e3).*1;
+in = audioread('Speech_all.wav'); in = in(1:5e4).*1;
+% in = audioread('p50_male.wav'); in = in(62e3:64e3).*1;
 % in = audioread('p50_female.wav'); in = in(1:5e4).*1;
 % in = ones(1,1200).*1e-4; in(50:600) = 1;
 % t = linspace(1,100,10000);
@@ -30,7 +30,6 @@ out_agc = zeros(size(in), 'int32');
 gain_used = zeros(size(in));                % array to see what gain the agc used 
 out = zeros(size(in));                      % output signal array
 
-
 % high pass filter parameters
 [B_1, A_1] = high_pass_filter();  % get high pass filter coefficients
 B_hp = int32(B_1 .* 2^(filter_bits-1));
@@ -53,7 +52,7 @@ beta  = 0.05;                    % release time ~ 30-40ms
 
 for n = 1:length(in)
     % ---------- FIXED POINT ----------
-    in_fix(n) = int16(round(in(n) .* (2.^(bits-1)))); % scale up to 2^bits-1 and round off to integer
+    in_fix(n) = int16(round(in(n) .* (2.^(9))) .* 2^6); % scale up to 2^bits-1 and round off to integer
     
     % ---------- HIGH PASS FILTER ----------
     in_hp = int32(int32(int32(-A_hp(2))* int32(y_hp_pre))...

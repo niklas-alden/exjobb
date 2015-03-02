@@ -35,21 +35,14 @@ function [gain] = agc_lut(~)
     yy = polyval(p_coeff, P_in);
     lut(62:end, 5) = yy(62:end) ./ P_in(62:end);
     
-%     % polynomial 1, index 5, dB
-%     x_poly = [10^6.0 10^6.1 10^10.5 10^10.6];
-%     y_poly = [10^6.0 10^6.1 10^8.2 10^8.2];
-%     p_coeff = polyfit(x_poly, y_poly, 2);
-%     yy = polyval(p_coeff, P_in);
-%     lut(62:end, 5) = yy(62:end) ./ P_in(62:end);
+    % dB ideal, index 6
+    for i = 1:n
+        if i > 82
+            lut(i,6) = 10^8.2 / 10^(i/10);
+        end
+    end
     
-    % polynomial 2, index 6
-    x_poly = [20 50 51];
-    y_poly = [20 45 45];
-    p_coeff = polyfit(x_poly, y_poly, 2);
-    yy = polyval(p_coeff, P_in);
-    lut(44:end, 6) = yy(44:end) ./ P_in(44:end);
-    
-    % polynomial 3, index 7
+    % polynomial 2, index 7
     x_poly = [38 56 75 80];
     y_poly = [40 46 42 40];
     p_coeff = polyfit(x_poly, y_poly, 3);
@@ -61,23 +54,23 @@ function [gain] = agc_lut(~)
     % 3 = tanh 1
     % 4 = tanh 2
     % 5 = polynomial 1
-    % 6 = polynomial 2
-    % 7 = polynomial 3
+    % 6 = dB ideal
+    % 7 = polynomial 2
     gain = lut(:,5);
 
-if 1 == 1
+if 1 == 0
     clf;
     figure(2)
     subplot(211)
-    plot(P_in, P_in'.*lut(P_in,2), 'b') % 2
+    plot(P_in, P_in'.*lut(P_in,2), 'b')     % 2
     hold on
     grid on
-    plot(P_in, P_in'.*lut(P_in,3), 'g') % 3
-    plot(P_in, P_in'.*lut(P_in,4), 'g--') % 4
-    plot(P_in, P_in'.*lut(P_in,5), 'r') % 5
-    % plot(P_in, P_in'.*lut(P_in,6), 'r--') % 6
-    % plot(P_in, P_in'.*lut(P_in,7), 'r.') % 7
-    legend('2','3','4','5','Location','northwest')
+    plot(P_in, P_in'.*lut(P_in,3), 'g')     % 3
+    plot(P_in, P_in'.*lut(P_in,4), 'g--')   % 4
+    plot(P_in, P_in'.*lut(P_in,5), 'r')     % 5
+    plot(P_in, P_in'.*lut(P_in,6), 'r--')   % 6
+    plot(P_in, P_in'.*lut(P_in,7), 'r.')    % 7
+    legend('2','3','4','5','6','7','Location','northwest')
     xlabel('P_{in}')
     ylabel('P_{out}')
     subplot(212)
@@ -89,29 +82,29 @@ if 1 == 1
 end
 end
 
-%% polynomial
+% %% polynomial
+% % clf
+% % x_poly = [60 61 105 106];
+% % y_poly = [60 61 82 82];
+% % p_coeff = polyfit(x_poly, y_poly, 2);
+% % xx = linspace(0,130, 131);
+% % yy = polyval(p_coeff, xx);
+% % 
+% % plot(xx,yy, xx,xx,'r--',xx,82,'r--')
+% % grid on
+% % axis([0 130 0 85]);
+% 
 % clf
-% x_poly = [60 61 105 106];
-% y_poly = [60 61 82 82];
+% x_poly = [10^6.0 10^10.5 10^10.6];
+% y_poly = [10^6.0 10^8.2 10^8.2];
 % p_coeff = polyfit(x_poly, y_poly, 2);
-% xx = linspace(0,130, 131);
+% xx = linspace(0,10^13.0);
 % yy = polyval(p_coeff, xx);
 % 
-% plot(xx,yy, xx,xx,'r--',xx,82,'r--')
+% % plot(xx,yy, xx,xx,'r--',xx,82,'r--')
+% plot(10.*log10(real(xx)), 10.*log10(real(yy)))
 % grid on
-% axis([0 130 0 85]);
-
-clf
-x_poly = [10^6.0 10^10.5 10^10.6];
-y_poly = [10^6.0 10^8.2 10^8.2];
-p_coeff = polyfit(x_poly, y_poly, 2);
-xx = linspace(0,10^13.0);
-yy = polyval(p_coeff, xx);
-
-% plot(xx,yy, xx,xx,'r--',xx,82,'r--')
-plot(10.*log10(real(xx)), 10.*log10(real(yy)))
-grid on
-% axis([0 130 0 85]);
+% % axis([0 130 0 85]);
 
 % clf
 % x_poly = [40 41 80 81];

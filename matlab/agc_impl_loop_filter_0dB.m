@@ -1,6 +1,6 @@
-clear all; clf;
-
-bits = 10;              % resolution of data
+% clear all; 
+clf;
+bits = 12;              % resolution of data
 filter_bits = 10;       % resolution of filter coefficients
 % load handel; in = y(1:5000).*1; % input signal
 % in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
@@ -110,24 +110,24 @@ for n = 1:length(in)
 %     out(n) = double(in_hp_fix(n)) ./ 2.^(bits-1);    % BYPASS scale down so -1 < output < 1
 end
 
-figure(1)
-clf
-t = 1:length(in);
-
-subplot(311)
-plot(t, in, t, out, 'r--')
-legend('in','out','Location','eastoutside')
-
-subplot(312)
-% plot(t, 10.*log10(double(in_fix_filtered_no_gain).^2), 'b',...
-%      t, 10.*log10(double(in_fix_filtered).^2), 'r--')
-plot(t, P, 'b', t, 0, 'r--'...
-     ...,t, real(20.*log10(double(in_fix_filtered))) - 82, 'm',...
-     ...t, real(20.*log10(double(out_agc))) - 82, 'g--'...
-     )
-% legend('P_{max}', 'P', 'P_{in}', 'P_{out}', 'Location','eastoutside')
-legend('P', 'P_{max}', 'Location','eastoutside')
-
-subplot(313)
-plot(t, gain_used)
-legend('gain','Location','eastoutside')
+% figure(1)
+% clf
+% t = 1:length(in);
+% 
+% subplot(311)
+% plot(t, in, t, out, 'r--')
+% legend('in','out','Location','eastoutside')
+% 
+% subplot(312)
+% % plot(t, 10.*log10(double(in_fix_filtered_no_gain).^2), 'b',...
+% %      t, 10.*log10(double(in_fix_filtered).^2), 'r--')
+% plot(t, P, 'b', t, 0, 'r--'...
+%      ...,t, real(20.*log10(double(in_fix_filtered))) - 82, 'm',...
+%      ...t, real(20.*log10(double(out_agc))) - 82, 'g--'...
+%      )
+% % legend('P_{max}', 'P', 'P_{in}', 'P_{out}', 'Location','eastoutside')
+% legend('P', 'P_{max}', 'Location','eastoutside')
+% 
+% subplot(313)
+% plot(t, gain_used)
+% legend('gain','Location','eastoutside')

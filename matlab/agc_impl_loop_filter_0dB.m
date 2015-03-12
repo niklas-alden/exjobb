@@ -1,10 +1,10 @@
 % clear all; 
-clf;
+% clf;
 bits = 12;              % resolution of data
 filter_bits = 10;       % resolution of filter coefficients
 % load handel; in = y(1:5000).*1; % input signal
 % in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
-in = audioread('Speech_all.wav'); in = in(40000:40020).*1;
+in = audioread('Speech_all.wav'); in = in(39280:39300).*1;
 % in = audioread('p50_male.wav'); in = in(1:5e4).*1;
 % in = audioread('p50_female.wav'); in = in(1:5e4).*1;
 % in = ones(1,1200).*1e-4; in(50:600) = 1;
@@ -81,12 +81,12 @@ for n = 1:length(in)
 %     in_fix_filtered_no_gain(n) = in_fix_filtered(n);
 
     % ----- AGC -----
-    P_in = int32(abs(in_fix_filtered(n)).^2);
+    P_in = int32(abs(int32(in_fix_filtered(n))).^2);
     
     if P_in > P_prev
-        P_tmp(n) = int32(((1*2^(16-1) - alpha).*(P_prev / 2^(16-1))) + (int32(alpha.*P_in) / 2^(16-1))); 
+        P_tmp(n) = int32(((1*2^(16-1) - alpha).*(P_prev / 2^(16-1))) + (int32(alpha.*P_in) / 2^(16-1)));
     else
-        P_tmp(n) = int32(((1*2^(16-1) - beta) .*(P_prev / 2^(16-1))) + (int32(beta .*P_in) / 2^(16-1))); 
+        P_tmp(n) = int32(((1*2^(16-1) - beta) .*(P_prev / 2^(16-1))) + (int32(beta .*P_in) / 2^(16-1)));
     end
 
     if P_tmp(n) ~= 0 % avoid log10 of 0
@@ -109,6 +109,18 @@ for n = 1:length(in)
 %     out(n) = double(in_fix_filtered(n)) ./ (2.^(bits-1));    % BYPASS scale down so -1 < output < 1
 %     out(n) = double(in_hp_fix(n)) ./ 2.^(bits-1);    % BYPASS scale down so -1 < output < 1
 end
+
+% fileID = fopen('in_fixed.txt', 'w');
+% fprintf(fileID, '%d\r\n', in_fix);
+% fclose(fileID);
+% 
+% fileID = fopen('in_fix_filtered.txt', 'w');
+% fprintf(fileID, '%d\r\n', in_fix_filtered);
+% fclose(fileID);
+% 
+% fileID = fopen('out_fixed.txt', 'w');
+% fprintf(fileID, '%d\r\n', out_agc);
+% fclose(fileID);
 
 figure(1)
 clf

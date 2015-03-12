@@ -58,6 +58,7 @@ function [gain] = agc_lut(~)
     % 7 = polynomial 2
     gain = lut(:,5);
 
+% PLOT
 if 1 == 0
     clf;
     figure(2)
@@ -80,6 +81,13 @@ if 1 == 0
     ylabel('gain')
     grid on
 end
+
+% EXPORT TO FILE
+if 1 == 1
+    export_curve = 5;
+    fileID = fopen('matlab_gain_lut.txt','wt');
+    fprintf(fileID, '%1.15f\n', lut(:,export_curve));
+    fclose(fileID);
 end
 
 % %% polynomial

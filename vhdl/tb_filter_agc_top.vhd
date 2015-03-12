@@ -2,15 +2,15 @@
 -- Company: 
 -- Engineer:
 --
--- Create Date:   23:10:15 03/09/2015
+-- Create Date:   17:21:43 03/12/2015
 -- Design Name:   
--- Module Name:   D:/Google Drive/Exjobb/vhdl/filters/tb_eq_filter.vhd
+-- Module Name:   D:/Google Drive/Exjobb/vhdl/filters/tb_filter_agc_top.vhd
 -- Project Name:  filters
 -- Target Device:  
 -- Tool versions:  
 -- Description:   
 -- 
--- VHDL Test Bench Created by ISE for module: eq_filter
+-- VHDL Test Bench Created by ISE for module: filtered_agc_top
 -- 
 -- Dependencies:
 -- 
@@ -30,46 +30,47 @@ USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
 use IEEE.std_logic_textio.all;
 use std.textio.all;
- 
-ENTITY tb_eq_filter IS
-END tb_eq_filter;
- 
-ARCHITECTURE behavior OF tb_eq_filter IS 
 
+ENTITY tb_filter_agc_top IS
+END tb_filter_agc_top;
+ 
+ARCHITECTURE behavior OF tb_filter_agc_top IS 
+ 
     -- Component Declaration for the Unit Under Test (UUT)
  
-    COMPONENT eq_filter
+    COMPONENT filtered_agc_top
     PORT(
          clk : IN  std_logic;
          rstn : IN  std_logic;
          i_sample : IN  std_logic_vector(15 downto 0);
-		 i_start : in std_logic;
-         o_sample : OUT  std_logic_vector(15 downto 0)
+         o_sample : OUT  std_logic_vector(15 downto 0);
+--         o_next_sample : OUT  std_logic;
+		 o_done : out std_logic
         );
     END COMPONENT;
     
 
    --Inputs
    signal clk : std_logic := '0';
-   signal rstn : std_logic := '1';
+   signal rstn : std_logic := '0';
    signal i_sample : std_logic_vector(15 downto 0) := (others => '0');
-   signal i_start : std_logic := '0';
 
  	--Outputs
    signal o_sample : std_logic_vector(15 downto 0);
+   signal o_done : std_logic;
 
    -- Clock period definitions
    constant clk_period : time := 10 ns;
-	
+ 
 BEGIN
  
 	-- Instantiate the Unit Under Test (UUT)
-   uut: eq_filter PORT MAP (
+   uut: filtered_agc_top PORT MAP (
           clk => clk,
           rstn => rstn,
           i_sample => i_sample,
-		  i_start => i_start,
-          o_sample => o_sample
+          o_sample => o_sample,
+          o_done => o_done
         );
 
    -- Clock process definitions
@@ -82,38 +83,35 @@ BEGIN
    end process;
  
 
--- Stimulus process
+   -- Stimulus process
    stim_proc: process
-    
- 	file stimulus : text is in "SIMULATION_DATA.txt";
+
+	file stimulus : text is in "SIMULATION_DATA.txt";
 	variable in_line : line;
 	variable in_data : integer;
-   
+	
+
    begin		
 		rstn <= '0';
-      wait for 10 ns;	
+		wait for 10 ns;	
 		rstn <= '1';
-      wait for clk_period;
-		i_sample <= (others => '0');
 		wait for clk_period;
-		
+	
 		while not endfile(stimulus) loop
           -- read digital data from input file
-			i_start <= '1';
-			readline(stimulus, in_line);
-			read(in_line, in_data);
-			i_sample <= std_logic_vector(to_signed(in_data,16));
-			wait for clk_period;
-			i_start <= '0';
-			wait for clk_period*6;
-						
+			if o_done = '1' then
+				readline(stimulus, in_line);
+				read(in_line, in_data);
+				i_sample <= std_logic_vector(to_signed(in_data,16));
+				wait for clk_period;
+			else
+				wait for clk_period;
+			end if;
+			
 		end loop;
-		
 		wait for clk_period*5;
 		i_sample <= (others => '0');
-		
-		wait;
+      wait;
    end process;
 
 END;
-

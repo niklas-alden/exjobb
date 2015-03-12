@@ -52,7 +52,6 @@ architecture Behavioral of agc_top is
 
 	signal P_agc_lut : std_logic_vector(7 downto 0);
 	signal gain_lut_agc : std_logic_vector(15 downto 0);
---	signal next_sample : std_logic;
 	
 
 begin

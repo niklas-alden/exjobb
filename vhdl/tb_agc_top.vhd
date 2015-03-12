@@ -44,7 +44,8 @@ ARCHITECTURE behavior OF tb_agc_top IS
          rstn : IN  std_logic;
          i_sample : IN  std_logic_vector(15 downto 0);
          o_sample : OUT  std_logic_vector(15 downto 0);
-		 o_next_sample : out std_logic
+		 o_next_sample : out std_logic;
+		 o_done : out std_logic
         );
     END COMPONENT;
     
@@ -57,6 +58,7 @@ ARCHITECTURE behavior OF tb_agc_top IS
  	--Outputs
    signal o_sample : std_logic_vector(15 downto 0);
    signal o_next_sample : std_logic;
+   signal o_done : std_logic;
 
    -- Clock period definitions
    constant clk_period : time := 10 ns;
@@ -69,7 +71,8 @@ BEGIN
           rstn => rstn,
           i_sample => i_sample,
           o_sample => o_sample,
-		  o_next_sample => o_next_sample
+		  o_next_sample => o_next_sample,
+		  o_done => o_done
         );
 
    -- Clock process definitions
@@ -108,7 +111,7 @@ BEGIN
 			end if;
 			
 		end loop;
-		
+		wait for clk_period*2;
 		i_sample <= (others => '0');
       wait;
    end process;

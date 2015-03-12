@@ -25,6 +25,7 @@ entity eq_filter is
 	Port ( 	clk : in  std_logic;
 				rstn : in  std_logic;
 				i_sample : in  std_logic_vector (15 downto 0);
+				i_start : in std_logic;
 				o_sample : out  std_logic_vector (15 downto 0)
 			);
 end eq_filter;
@@ -45,7 +46,7 @@ architecture Behavioral of eq_filter is
 	signal y_prev_c, y_prev_n : signed(31 downto 0) := (others => '0');
 	signal y_prev_prev_c, y_prev_prev_n : signed(31 downto 0) := (others => '0');
 	
-	signal y_hp_c : signed(31 downto 0) := (others => '0');
+	signal y_hp_c : signed(63 downto 0) := (others => '0');
 	signal y_hp_n : signed(63 downto 0) := (others => '0');
 	
 begin
@@ -64,10 +65,9 @@ begin
 		x_c <= signed(resize(signed(i_sample), 32));
 		x_prev_c <= x_prev_n;
 		x_prev_prev_c <= x_prev_prev_n;
-		
 		y_prev_c <= y_hp_n(40 downto 9);
 		y_prev_prev_c <= y_prev_prev_n;
-		y_hp_c <= y_hp_n(40 downto 9);
+		y_hp_c <= y_hp_n;
 	end if;
 	
 end process;
@@ -76,10 +76,17 @@ end process;
 filter_proc : process(x_c, x_prev_c, x_prev_prev_c, y_prev_c, y_prev_prev_c)
 begin
 	
-	y_hp_n <= b_0 * x_c + b_1 * x_prev_c + b_2 * x_prev_prev_c - a_1 * y_prev_c - a_2 * y_prev_prev_c;
-	x_prev_n <= x_c;
-	x_prev_prev_n <= x_prev_c;
-	y_prev_prev_n <= y_prev_c;
+	if i_start = '1' then
+		y_hp_n <= b_0 * x_c + b_1 * x_prev_c + b_2 * x_prev_prev_c - a_1 * y_prev_c - a_2 * y_prev_prev_c;
+		x_prev_n <= x_c;
+		x_prev_prev_n <= x_prev_c;
+		y_prev_prev_n <= y_prev_c;
+	else
+		y_hp_n <= y_hp_c;
+		x_prev_n <= x_prev_c;
+		x_prev_prev_n <= x_prev_prev_c;
+		y_prev_prev_n <= y_prev_prev_c;
+	end if;
 	
 end process;
 
@@ -87,7 +94,7 @@ end process;
 out_proc : process(y_hp_c) is
 begin
 
-	o_sample <= std_logic_vector(y_hp_c(22 downto 7));
+	o_sample <= std_logic_vector(y_hp_c(31 downto 16));
 	
 end process;
 	

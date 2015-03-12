@@ -28,6 +28,8 @@
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
+use IEEE.std_logic_textio.all;
+use std.textio.all;
  
 ENTITY tb_hp_filter IS
 END tb_hp_filter;
@@ -41,7 +43,9 @@ ARCHITECTURE behavior OF tb_hp_filter IS
 		 clk : IN  std_logic;
          rstn : IN  std_logic;
          i_sample : IN  std_logic_vector(15 downto 0);
-         o_sample : OUT  std_logic_vector(15 downto 0)
+		 i_next_sample : in std_logic;
+         o_sample : OUT  std_logic_vector(15 downto 0);
+		 o_done : out std_logic
         );
     END COMPONENT;
     
@@ -50,9 +54,11 @@ ARCHITECTURE behavior OF tb_hp_filter IS
    signal clk : std_logic := '0';
    signal rstn : std_logic := '1';
    signal i_sample : std_logic_vector(15 downto 0) := (others => '0');
+   signal i_next_sample : std_logic;
 
  	--Outputs
    signal o_sample : std_logic_vector(15 downto 0);
+   signal o_done : std_logic;
 
    -- Clock period definitions
    constant clk_period : time := 10 ns;
@@ -64,7 +70,9 @@ BEGIN
           clk => clk,
           rstn => rstn,
           i_sample => i_sample,
-          o_sample => o_sample
+		  i_next_sample => i_next_sample,
+          o_sample => o_sample,
+		  o_done => o_done
         );
 
    -- Clock process definitions
@@ -75,10 +83,15 @@ BEGIN
 		clk <= '1';
 		wait for clk_period/2;
    end process;
- 
+
 
    -- Stimulus process
    stim_proc: process
+    
+ 	file stimulus : text is in "SIMULATION_DATA.txt";
+	variable in_line : line;
+	variable in_data : integer;
+   
    begin		
 		rstn <= '0';
       wait for 10 ns;	
@@ -87,56 +100,22 @@ BEGIN
 		i_sample <= (others => '0');
 		wait for clk_period;
 		
---		HIGH PASS FILTER
---		i_sample <= std_logic_vector(to_signed(-864, 16));
---		wait for clk_period;
---		i_sample <= std_logic_vector(to_signed(720, 16));
---		wait for clk_period;
---		i_sample <= std_logic_vector(to_signed(2000, 16));
---		wait for clk_period;
---		i_sample <= std_logic_vector(to_signed(2832, 16));
---		wait for clk_period;
---		i_sample <= std_logic_vector(to_signed(3024, 16));
---		wait for clk_period;
---		i_sample <= std_logic_vector(to_signed(2768, 16));
---		wait for clk_period;
---		i_sample <= std_logic_vector(to_signed(2256, 16));
---		wait for clk_period;
---		i_sample <= std_logic_vector(to_signed(1664, 16));
---		wait for clk_period;
---		i_sample <= std_logic_vector(to_signed(1168, 16));
---		wait for clk_period;
---		i_sample <= std_logic_vector(to_signed(816, 16));
---		wait for clk_period;
---		i_sample <= std_logic_vector(to_signed(368, 16));
---		wait for clk_period;
+		while not endfile(stimulus) loop
+          -- read digital data from input file
+			i_next_sample <= '1';
+			readline(stimulus, in_line);
+			read(in_line, in_data);
+			i_sample <= std_logic_vector(to_signed(in_data,16));
+			wait for clk_period;
+			i_next_sample <= '0';
+			wait for clk_period*6;
+						
+		end loop;
 		
---		EQ FILTER
-		i_sample <= std_logic_vector(to_signed(-851, 16));
-		wait for clk_period;
-		i_sample <= std_logic_vector(to_signed(735, 16));
-		wait for clk_period;
-		i_sample <= std_logic_vector(to_signed(1972, 16));
-		wait for clk_period;
-		i_sample <= std_logic_vector(to_signed(2729, 16));
-		wait for clk_period;
-		i_sample <= std_logic_vector(to_signed(2833, 16));
-		wait for clk_period;
-		i_sample <= std_logic_vector(to_signed(2492, 16));
-		wait for clk_period;
-		i_sample <= std_logic_vector(to_signed(1910, 16));
-		wait for clk_period;
-		i_sample <= std_logic_vector(to_signed(1268, 16));
-		wait for clk_period;
-		i_sample <= std_logic_vector(to_signed(740, 16));
-		wait for clk_period;
-		i_sample <= std_logic_vector(to_signed(370, 16));
-		wait for clk_period;
-		i_sample <= std_logic_vector(to_signed(-83, 16));
-		wait for clk_period;
-
+		wait for clk_period*5;
 		i_sample <= (others => '0');
-      wait;
+		
+		wait;
    end process;
 
 END;

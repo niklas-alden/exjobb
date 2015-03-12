@@ -29,7 +29,8 @@ entity agc is
            i_gain : in  STD_LOGIC_VECTOR (15 downto 0);
            o_power : out  STD_LOGIC_VECTOR (7 downto 0);
            o_sample : out  STD_LOGIC_VECTOR (15 downto 0);
-		   o_next_sample : out STD_LOGIC
+		   o_next_sample : out STD_LOGIC;
+		   o_done : out STD_LOGIC
 	);
 end agc;
 
@@ -49,7 +50,7 @@ architecture Behavioral of agc is
 	signal agc_out_c : signed(15 downto 0) := (others => '0');
 	signal agc_out_n : signed(31 downto 0) := (others => '0');
 	signal curr_sample_c, curr_sample_n : signed(15 downto 0) := (others => '0');
-	signal cnt_c, cnt_n : unsigned(2 downto 0) := (others => '0');
+	signal cnt_c, cnt_n : unsigned(3 downto 0) := (others => '0');
 
 begin
 
@@ -63,7 +64,7 @@ begin
 		P_prev_c <= (others => '0');
 		agc_out_c <= (others => '0');
 		curr_sample_c <= (others => '0');
-		cnt_c <= (others => '1');
+		cnt_c <= (others => '0');
 	elsif rising_edge(clk) then
 		P_in_c <= P_in_n(30 downto 0);
 		P_tmp_c <= P_tmp_n(46 downto 15);
@@ -81,13 +82,13 @@ end process;
 power_proc : process(curr_sample_c, P_in_c, P_tmp_c, P_dB_c, P_prev_c, cnt_c, agc_out_c) is--, i_sample
 begin
 	
-	if cnt_c = 1 then
+	if cnt_c = 3 then
 		P_in_n <= unsigned(abs(signed(curr_sample_c)) * abs(signed(curr_sample_c)));
 	else
 		P_in_n <= resize(P_in_c, 32);
 	end if;
 	
-	if cnt_c = 2 then
+	if cnt_c = 4 then
 		if P_in_c > P_prev_c then
 			P_tmp_n <= (32768 - alpha) * P_prev_c(30 downto 0) + alpha * P_in_c;
 		else
@@ -97,7 +98,7 @@ begin
 		P_tmp_n <= P_tmp_c & "000000000000000";
 	end if;
 		
-	if cnt_c = 3 then
+	if cnt_c = 5 then
 		
 		if P_tmp_c > x"2133a19c6" then -- >99.5dB
 			P_dB_n <= to_signed(18, 8);
@@ -301,21 +302,24 @@ begin
 		P_dB_n <= P_dB_c;
 	end if;
 
-	if cnt_c = 0 then
+	if cnt_c = 2 then
 		cnt_n <= cnt_c + 1;
 		o_next_sample <= '0';
+		o_done <= '0';
 		o_sample <= (others => '0');
 		curr_sample_n <= signed(i_sample);
 		P_prev_n <= P_prev_c;
-	elsif cnt_c < 5 then
+	elsif cnt_c < 7 then
 		cnt_n <= cnt_c + 1;
 		o_next_sample <= '0';
+		o_done <= '0';
 		o_sample <= (others => '0');
 		curr_sample_n <= curr_sample_c;
 		P_prev_n <= P_prev_c;
 	else
 		cnt_n <= (others => '0');
 		o_next_sample <= '1';
+		o_done <= '1';
 		o_sample <= std_logic_vector(agc_out_c);
 		curr_sample_n <= curr_sample_c;
 		P_prev_n <= unsigned(abs(signed(agc_out_c)) * abs(signed(agc_out_c)));
@@ -324,10 +328,10 @@ begin
 end process;
 
 
-gain_proc : process(i_gain, curr_sample_c, cnt_c, p_dB_c) is
+gain_proc : process(i_gain, curr_sample_c, cnt_c, P_dB_c) is
 begin
-	if cnt_c = 4 then
-		if P_dB_c > to_signed(-82,16) then
+	if cnt_c = 6 then
+		if P_dB_c > to_signed(-82,16) then -- optimize
 			agc_out_n <= signed(curr_sample_c) * signed(i_gain); 
 		else
 			agc_out_n <= resize(signed(curr_sample_c), 32); 

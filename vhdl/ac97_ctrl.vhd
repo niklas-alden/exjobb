@@ -35,11 +35,15 @@ entity ac97_ctrl is
            i_ac97_bit_clk : in  STD_LOGIC;-- 12.288 MHz clock from ac97
            o_ac97_rstn : out  STD_LOGIC;-- ac97 reset for initialization
            o_ac97_ctrl_ready : out  STD_LOGIC;-- pulse for one cycle
-           i_L_ADC : in  STD_LOGIC_VECTOR (15 downto 0);-- lt chan output from ADC
-           i_R_ADC : in  STD_LOGIC_VECTOR (15 downto 0);-- rt chan output from ADC
-           o_L_DAC : out  STD_LOGIC_VECTOR (19 downto 0);-- lt chan input to DAC
-           o_R_DAC : out  STD_LOGIC_VECTOR (19 downto 0);-- rt chan input to DAC
-           i_latching_cmd : in  STD_LOGIC;
+           
+		   i_L_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- lt chan output from AGC
+           i_R_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- rt chan output from ADC
+           
+		   o_L_to_AGC : out  STD_LOGIC_VECTOR (19 downto 0);-- lt chan input from ADC to send to AGC
+           o_R_to_AGC : out  STD_LOGIC_VECTOR (19 downto 0);-- rt chan input to DAC
+		   o_AGC_ready : out STD_LOGIC; -- L/R data ready for AGC
+           
+		   i_latching_cmd : in  STD_LOGIC;
            i_cmd_addr : in  STD_LOGIC_VECTOR(7 downto 0);-- cmd address coming in from ac97cmd state machine
            i_cmd_data : in  STD_LOGIC_VECTOR(15 downto 0)-- cmd data coming in from ac97cmd state machine
 		   );
@@ -67,11 +71,11 @@ begin
 -- concat for 18 bit usage can concat further for 16 bit use 
 	-- by using <& "0000"> and <left_in_data(19 downto 4)>
 	-------------------------------------------------------------------------------------
-	left_data  <= i_L_ADC & "0000";
-	right_data <= i_R_ADC & "0000";
+	left_data  <= i_L_from_AGC & "0000";
+	right_data <= i_R_from_AGC & "0000";
 
-	o_L_DAC <= left_in_data(19 downto 0);
-	o_R_DAC <= right_in_data(19 downto 0);
+--	o_L_DAC <= left_in_data(19 downto 0);
+--	o_R_DAC <= right_in_data(19 downto 0);
 	
 
 	-- Delay for ac97_reset signal, clk = 100MHz
@@ -186,15 +190,35 @@ in_frame_proc : process(i_ac97_bit_clk) is
 begin
 	-- clock on falling edge of bitclk
 	if falling_edge(i_ac97_bit_clk) then
-		if (bit_cnt_c >= 57) and (bit_cnt_c <= 76) then -- from 57 to 76
+		if (bit_cnt_c >= 56) and (bit_cnt_c <= 75) then -- from 57 to 76
 			-- Slot 3 : left channel
 			left_in_data <= left_in_data(18 downto 0) & i_ac97_sdata_in; -- concat incoming bits on end
 
-		elsif (bit_cnt_c >= 77) and (bit_cnt_c <= 96) then -- from 77 to 96
+		elsif (bit_cnt_c >= 76) and (bit_cnt_c <= 95) then -- from 77 to 96
 			-- Slot 4 : right channel
 			right_in_data <= right_in_data(18 downto 0) & i_ac97_sdata_in; -- concat incoming bits on end
 		end if;
 	end if;
 end process;
 
+
+send_to_agc_proc : process(i_ac97_bit_clk) is
+begin
+
+	
+	
+	if rising_edge(i_ac97_bit_clk) then
+		if bit_cnt_c = 96 then
+			o_L_to_AGC <= left_in_data(19 downto 0);
+			o_R_to_AGC <= right_in_data(19 downto 0);
+			o_AGC_ready <= '1';
+		else
+			o_L_to_AGC <= (others => '0');
+			o_R_to_AGC <= (others => '0');
+			o_AGC_ready <= '0';
+		end if;
+	end if;
+	
+end process;
+	
 end Behavioral;

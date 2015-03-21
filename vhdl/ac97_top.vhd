@@ -38,10 +38,17 @@ entity ac97_top is
            o_sync : out  STD_LOGIC;
            o_ac97_rstn : out  STD_LOGIC;
            i_bit_clk : in  STD_LOGIC;
-		   i_L_from_ADC : in STD_LOGIC_VECTOR(15 downto 0);
-		   i_R_from_ADC : in STD_LOGIC_VECTOR(15 downto 0);
-		   o_L_to_DAC : out STD_LOGIC_VECTOR(19 downto 0);
-		   o_R_to_DAC : out STD_LOGIC_VECTOR(19 downto 0)
+		   
+		   i_L_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- lt chan output from AGC
+           i_R_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- rt chan output from ADC
+		   o_L_AGC : out  STD_LOGIC_VECTOR (19 downto 0);-- lt chan input from ADC to send to AGC
+           o_R_AGC : out  STD_LOGIC_VECTOR (19 downto 0);-- rt chan input to DAC
+		   o_AGC_start : out STD_LOGIC -- L/R data ready for AGC
+		   
+--		   i_L_from_ADC : in STD_LOGIC_VECTOR(15 downto 0);
+--		   i_R_from_ADC : in STD_LOGIC_VECTOR(15 downto 0);
+--		   o_L_to_DAC : out STD_LOGIC_VECTOR(19 downto 0);
+--		   o_R_to_DAC : out STD_LOGIC_VECTOR(19 downto 0)
 		   );
 end ac97_top;
 
@@ -69,10 +76,18 @@ component ac97_ctrl is
            i_ac97_bit_clk : in  STD_LOGIC;-- 12.288 MHz clock from ac97
            o_ac97_rstn : out  STD_LOGIC;-- ac97 reset for initialization
            o_ac97_ctrl_ready : out  STD_LOGIC;-- pulse for one cycle
-           i_L_ADC : in  STD_LOGIC_VECTOR (15 downto 0);-- lt chan output from ADC
-           i_R_ADC : in  STD_LOGIC_VECTOR (15 downto 0);-- rt chan output from ADC
-           o_L_DAC : out  STD_LOGIC_VECTOR (19 downto 0);-- lt chan input to DAC
-           o_R_DAC : out  STD_LOGIC_VECTOR (19 downto 0);-- rt chan input to DAC
+           
+		   i_L_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- lt chan output from AGC
+           i_R_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- rt chan output from ADC
+           
+		   o_L_to_AGC : out  STD_LOGIC_VECTOR (19 downto 0);-- lt chan input from ADC to send to AGC
+           o_R_to_AGC : out  STD_LOGIC_VECTOR (19 downto 0);-- rt chan input to DAC
+		   o_AGC_ready : out STD_LOGIC; -- L/R data ready for AGC
+		   
+--		   i_L_ADC : in  STD_LOGIC_VECTOR (15 downto 0);-- lt chan output from ADC
+--           i_R_ADC : in  STD_LOGIC_VECTOR (15 downto 0);-- rt chan output from ADC
+--           o_L_DAC : out  STD_LOGIC_VECTOR (19 downto 0);-- lt chan input to DAC
+--           o_R_DAC : out  STD_LOGIC_VECTOR (19 downto 0);-- rt chan input to DAC
            i_latching_cmd : in  STD_LOGIC;
            i_cmd_addr : in  STD_LOGIC_VECTOR(7 downto 0);-- cmd address coming in from ac97cmd state machine
            i_cmd_data : in  STD_LOGIC_VECTOR(15 downto 0)-- cmd data coming in from ac97cmd state machine
@@ -108,10 +123,16 @@ begin
 			i_ac97_bit_clk 		=> i_bit_clk,
 			o_ac97_rstn 		=> o_ac97_rstn,
 			o_ac97_ctrl_ready 	=> ready_ctrl_comb,
-			i_L_ADC 			=> i_L_from_ADC,
-			i_R_ADC 			=> i_R_from_ADC,
-			o_L_DAC 			=> o_L_to_DAC,
-			o_R_DAC 			=> o_R_to_DAC,
+			
+			i_L_from_AGC 		=> i_L_AGC,
+			i_R_from_AGC 		=> i_R_AGC,
+			o_L_to_AGC 			=> o_L_AGC,
+			o_R_to_AGC 			=> o_R_AGC,
+			o_AGC_ready 		=> o_AGC_start,
+--			i_L_ADC 			=> i_L_from_ADC,
+--			i_R_ADC 			=> i_R_from_ADC,
+--			o_L_DAC 			=> o_L_to_DAC,
+--			o_R_DAC 			=> o_R_to_DAC,
 			i_latching_cmd 		=> latching_data_comb_ctrl,
 			i_cmd_addr 			=> cmd_addr_comb_ctrl,
 			i_cmd_data 			=> cmd_data_comb_ctrl

@@ -1,11 +1,11 @@
 --------------------------------------------------------------------------------
 -- Company: 
--- Engineer: Niklas Aldén
+-- Engineer:
 --
--- Create Date:   13:23:41 03/21/2015
+-- Create Date:   14:30:21 03/22/2015
 -- Design Name:   
--- Module Name:   D:/Google Drive/Exjobb/vhdl/ac97/tb_ac97_top.vhd
--- Project Name:  ac97
+-- Module Name:   C:/Users/Niklas/Google Drive/Exjobb/vhdl/ac97_laptop/tb_ac97_top.vhd
+-- Project Name:  ac97_laptop
 -- Target Device:  
 -- Tool versions:  
 -- Description:   
@@ -77,7 +77,7 @@ ARCHITECTURE behavior OF tb_ac97_top IS
 
    -- Clock period definitions
    constant clk_period : time := 10 ns;
-   constant i_bit_clk_period : time := 81.38 ns; -- 12.288 MHz
+   constant i_bit_clk_period : time := 81.38 ns;
  
 BEGIN
  
@@ -119,16 +119,34 @@ BEGIN
    -- Stimulus process
    stim_proc: process
    begin		
-      rstn <= '0';
-      wait for 10 ns;	
-	  rstn <= '1';
+		rstn <= '0';
+      wait for 100 ns;	
+		rstn <= '1';
 	  
       wait for clk_period;
 		i_L_AGC <= x"0042";
 		i_R_AGC <= x"0073";
       -- insert stimulus here
-		for i in 0 to 3000 loop
+		for i in 0 to 255 loop
+			if (i mod 8) = 1 then
+				i_sdata_in <= '1'; 
+			else 
+				i_sdata_in <= '0';
+			end if;
+			wait for i_bit_clk_period;
+		end loop;
+		
+		for i in 0 to 255 loop
 			if (i mod 4) = 1 then
+				i_sdata_in <= '1'; 
+			else 
+				i_sdata_in <= '0';
+			end if;
+			wait for i_bit_clk_period;
+		end loop;
+		
+		for i in 0 to 255 loop
+			if (i mod 2) = 1 then
 				i_sdata_in <= '1'; 
 			else 
 				i_sdata_in <= '0';

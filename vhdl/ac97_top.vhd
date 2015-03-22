@@ -40,9 +40,9 @@ entity ac97_top is
            i_bit_clk : in  STD_LOGIC;
 		   
 		   i_L_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- lt chan output from AGC
-           i_R_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- rt chan output from ADC
-		   o_L_AGC : out  STD_LOGIC_VECTOR (19 downto 0);-- lt chan input from ADC to send to AGC
-           o_R_AGC : out  STD_LOGIC_VECTOR (19 downto 0);-- rt chan input to DAC
+           i_R_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- rt chan output from AGC
+		   o_L_AGC : out  STD_LOGIC_VECTOR (19 downto 0);-- L channel input from ADC to send to AGC
+           o_R_AGC : out  STD_LOGIC_VECTOR (19 downto 0);-- R channel input from ADC to send to AGC
 		   o_AGC_start : out STD_LOGIC -- L/R data ready for AGC
 		   
 --		   i_L_from_ADC : in STD_LOGIC_VECTOR(15 downto 0);
@@ -98,6 +98,7 @@ end component;
 	signal cmd_data_comb_ctrl : std_logic_vector(15 downto 0);
 	signal latching_data_comb_ctrl : std_logic;
 	signal ready_ctrl_comb : std_logic;
+	signal L_bypass, R_bypass : std_logic_vector(19 downto 0);
 	
 
 begin
@@ -124,10 +125,10 @@ begin
 			o_ac97_rstn 		=> o_ac97_rstn,
 			o_ac97_ctrl_ready 	=> ready_ctrl_comb,
 			
-			i_L_from_AGC 		=> i_L_AGC,
-			i_R_from_AGC 		=> i_R_AGC,
-			o_L_to_AGC 			=> o_L_AGC,
-			o_R_to_AGC 			=> o_R_AGC,
+			i_L_from_AGC 		=> L_bypass(19 downto 4), --i_L_AGC,
+			i_R_from_AGC 		=> R_bypass(19 downto 4), --i_R_AGC,
+			o_L_to_AGC 			=> L_bypass, --o_L_AGC,
+			o_R_to_AGC 			=> R_bypass, --o_R_AGC,
 			o_AGC_ready 		=> o_AGC_start,
 --			i_L_ADC 			=> i_L_from_ADC,
 --			i_R_ADC 			=> i_R_from_ADC,

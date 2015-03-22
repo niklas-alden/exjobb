@@ -42,8 +42,8 @@ architecture Behavioral of ac97_comb is
 	signal cmd_c, cmd_n : std_logic_vector(23 downto 0) := (others => '0');
 	signal attenuation : std_logic_vector(4 downto 0) := (others => '0');
 	
-	type state_type is (MAST_VOL, HP_VOL, L_I_VOL, OUT_VOL, IN_SEL, IN_GAIN, DAC_RATE, ADC_RATE);
-	signal state_c, state_n : state_type := MAST_VOL;
+	type state_type is (MAST_VOL, HP_VOL, L_I_VOL, OUT_VOL, IN_SEL, IN_GAIN, DAC_RATE, ADC_RATE, LOOPBACK);
+	signal state_c, state_n : state_type := HP_VOL;
 	
 begin
 
@@ -53,7 +53,7 @@ begin
 	
 	with cmd_c(23 downto 16) select
 		o_latching_cmd <=
-			'1' when 	x"02" | x"04" | x"10" | x"18" | x"1A" | x"1C" | x"2C" | x"32",
+			'1' when 	x"02" | x"04" | x"10" | x"18" | x"1A" | x"1C" | x"2C" | x"32" | x"20",
 			'0' when others;
 	
 	
@@ -61,7 +61,7 @@ clk_proc : process(clk, rstn) is
 begin
 
 	if rstn = '0' then
-		state_c <= MAST_VOL;
+		state_c <= HP_VOL;				--MAST_VOL;
 		cmd_c <= (others => '0');
 	elsif rising_edge(clk) then
 		if i_ac97_ctrl_ready = '1' then
@@ -77,30 +77,37 @@ fsm_proc : process(state_c, attenuation) is
 begin
 
 	case state_c is
-		when MAST_VOL =>
-			cmd_n <= x"02_0000"; -- master volume, 00000->0dB attenuation
-			state_n <= HP_VOL;
+--		when MAST_VOL =>
+--			cmd_n <= x"02_0000"; -- master volume, 00000->0dB attenuation
+--			state_n <= HP_VOL;
 		when HP_VOL =>
 			cmd_n <= x"04" & "000" & attenuation & "000" & attenuation; -- headphone volume
 			state_n <= L_I_VOL;
 		when L_I_VOL =>
-			cmd_n <= x"10_0808"; -- line_in volume = 0dB
+			--cmd_n <= x"10_0808"; -- line_in volume = 0dB
+			cmd_n <= x"10_8808"; --line_in MUTE
 			state_n <= OUT_VOL;
 		when OUT_VOL =>
-			cmd_n <= x"18_0808"; -- PCM out volume = 0dB
+			--cmd_n <= x"18_0808"; -- PCM out volume = 0dB
+			cmd_n <= x"18_1F1F"; -- PCM out volume = -34.5dB
 			state_n <= IN_SEL;
 		when IN_SEL => 
 			cmd_n <= x"1A_0404"; -- record select = line_in
 			state_n <= IN_GAIN;
 		when IN_GAIN =>
-			cmd_n <= x"1C_0F0F"; -- record gain = 22.5dB
+			--cmd_n <= x"1C_0F0F"; -- record gain = 22.5dB
+			cmd_n <= x"1C_0000"; -- record gain = 0dB
 			state_n <= DAC_RATE;
 		when DAC_RATE =>
 			cmd_n <= x"2C_BB80"; -- PCM DAC sample rate, 0xBB80 = 48kHz
 			state_n <= ADC_RATE;
 		when ADC_RATE =>
 			cmd_n <= x"32_BB80"; -- PCM ADC sample rate, 0xBB80 = 48kHz
-			state_n <= MAST_VOL;
+			state_n <= HP_VOL;		--MAST_VOL;--LOOPBACK;
+		
+--		when LOOPBACK =>
+--			cmd_n <= x"20_0080"; -- Loopback PCM Digital Data from ADC Output to DAC
+--			state_n <= MAST_VOL;
 		
 		when others =>
 			cmd_n <= cmd_c;

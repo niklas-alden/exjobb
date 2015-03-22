@@ -1,14 +1,30 @@
 NET "clk" 			LOC="AH15";
-NET "rstn" 			LOC="AJ6";  #SW_C
+NET "rstn" 			LOC="AC24";# SW8     "AJ6";  #SW_C
 
-NET "i_sdata_in" 	LOC="AE18" | IOSTANDARD=LVCMOS33;
-NET "o_sdata_out" 	LOC="AG16" | IOSTANDARD=LVCMOS33;
-NET "o_sync" 		LOC="AF19" | IOSTANDARD=LVCMOS33;
-NET "o_ac97_rstn" 	LOC="AG17" | IOSTANDARD=LVCMOS33;
-NET "i_bit_clk" 	LOC="AF18" | IOSTANDARD=LVCMOS33;
+NET "i_sdata_in" 	LOC="AE18";# | IOSTANDARD=LVCMOS33;
+NET "o_sdata_out" 	LOC="AG16";# | IOSTANDARD=LVCMOS33;
+NET "o_sync" 		LOC="AF19";# | IOSTANDARD=LVCMOS33;
+NET "o_ac97_rstn" 	LOC="AG17";# | IOSTANDARD=LVCMOS33;
+NET "i_bit_clk" 	LOC="AF18";# | IOSTANDARD=LVCMOS33;
 
 NET "i_volume[0]"	LOC="AE27"; #SW5
 NET "i_volume[1]"	LOC="AF26"; #SW4
 NET "i_volume[2]"	LOC="AF25"; #SW3
 NET "i_volume[3]"	LOC="AG27"; #SW2
 NET "i_volume[4]"	LOC="U25";  #SW1
+
+
+#NET "o_L_AGC[7]"	LOC="AF23"; #led_w
+#NET "o_L_AGC[8]"	LOC="E8"; #led_c
+#NET "o_L_AGC[9]"	LOC="AG23"; #led_e
+#NET "o_L_AGC[10]"	LOC="AF13";  #led_n
+#NET "o_L_AGC[11]"	LOC="AG12"; #led_s
+
+#NET "o_L_AGC[12]"	LOC="AE24"; #led7
+#NET "o_L_AGC[13]"	LOC="AD24"; #led6
+#NET "o_L_AGC[14]"	LOC="AD25"; #led5
+#NET "o_L_AGC[15]"	LOC="G16";  #led4
+#NET "o_L_AGC[16]"	LOC="AD26"; #led3
+#NET "o_L_AGC[17]"	LOC="G15";  #led2
+#NET "o_L_AGC[18]"	LOC="L18";  #led1
+#NET "o_L_AGC[19]"	LOC="H18";  #led0

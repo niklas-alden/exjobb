@@ -205,16 +205,15 @@ end process;
 send_to_agc_proc : process(i_ac97_bit_clk) is
 begin
 
-	
-	
 	if rising_edge(i_ac97_bit_clk) then
+		o_L_to_AGC <= left_in_data(19 downto 0);
+		o_R_to_AGC <= right_in_data(19 downto 0);
+		
 		if bit_cnt_c = 96 then
-			o_L_to_AGC <= left_in_data(19 downto 0);
-			o_R_to_AGC <= right_in_data(19 downto 0);
 			o_AGC_ready <= '1';
 		else
-			o_L_to_AGC <= (others => '0');
-			o_R_to_AGC <= (others => '0');
+--			o_L_to_AGC <= (others => '0');
+--			o_R_to_AGC <= (others => '0');
 			o_AGC_ready <= '0';
 		end if;
 	end if;

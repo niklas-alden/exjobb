@@ -45,7 +45,7 @@ architecture Behavioral of agc is
 	signal P_tmp_n : unsigned(46 downto 0) := (others => '0');
 	signal P_dB_c, P_dB_n : signed(7 downto 0) := (others => '0');
 	signal P_prev_c, P_prev_n : unsigned(31 downto 0) := (others => '0');
-	signal agc_out_c : signed(15 downto 0) := (others => '0');
+	signal agc_out_c : signed(31 downto 0) := (others => '0');
 	signal agc_out_n : signed(31 downto 0) := (others => '0');
 	signal curr_sample_c, curr_sample_n : signed(15 downto 0) := (others => '0');
 	
@@ -72,7 +72,7 @@ begin
 		P_tmp_c <= P_tmp_n(46 downto 15);
 		P_dB_c <= P_dB_n;
 		P_prev_c <= P_prev_n;
-		agc_out_c <= agc_out_n(30 downto 15);
+		agc_out_c <= agc_out_n;
 		curr_sample_c <= curr_sample_n;
 	end if;
 	
@@ -88,8 +88,8 @@ begin
 	P_dB_n <= P_dB_c;
 	curr_sample_n <= curr_sample_c;
 	P_prev_n <= P_prev_c;
-	agc_out_n <= signed(resize(signed(agc_out_c), 32));
-	o_sample <= std_logic_vector(agc_out_c);
+	agc_out_n <= agc_out_c;
+	o_sample <= std_logic_vector(agc_out_c(30 downto 15));
 	o_power <= std_logic_vector(P_dB_n);
 	o_done <= '0';
 	
@@ -324,7 +324,7 @@ begin
 		
 		when SEND =>
 			o_done <= '1';
-			P_prev_n <= unsigned(abs(signed(agc_out_c)) * abs(signed(agc_out_c)));
+			P_prev_n <= unsigned(abs(signed(agc_out_c(30 downto 15))) * abs(signed(agc_out_c(30 downto 15))));
 			state_n <= HOLD;
 			
 	end case;

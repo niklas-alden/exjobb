@@ -25,8 +25,9 @@ entity agc_top is
 	Port ( clk : in  STD_LOGIC;
 			 rstn : in  STD_LOGIC;
 			 i_sample : in  STD_LOGIC_VECTOR (15 downto 0);
+			 i_start : in std_logic;
 			 o_sample : out  STD_LOGIC_VECTOR (15 downto 0);
-			 o_next_sample : out std_logic
+			 o_done : out std_logic
 			);
 end agc_top;
 
@@ -37,9 +38,10 @@ architecture Behavioral of agc_top is
 				rstn : in  STD_LOGIC;
 				i_sample : in  STD_LOGIC_VECTOR (15 downto 0);
 				i_gain : in  STD_LOGIC_VECTOR (15 downto 0);
+				i_start : in std_logic;
 				o_power : out  STD_LOGIC_VECTOR (7 downto 0);
 				o_sample : out  STD_LOGIC_VECTOR (15 downto 0);
-				o_next_sample : out std_logic
+				o_done : out std_logic
 				);
 	end component;
 
@@ -61,10 +63,11 @@ begin
 			clk => clk,
 			rstn => rstn,
 			i_sample => i_sample,
+			i_start => i_start,
 			i_gain => gain_lut_agc,
 			o_power => P_agc_lut,
 			o_sample => o_sample,
-			o_next_sample => o_next_sample
+			o_done => o_done
 			);
 			
 	gain_lut_inst : gain_lut

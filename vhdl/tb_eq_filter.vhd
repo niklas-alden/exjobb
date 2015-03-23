@@ -44,7 +44,8 @@ ARCHITECTURE behavior OF tb_eq_filter IS
          rstn : IN  std_logic;
          i_sample : IN  std_logic_vector(15 downto 0);
 		 i_start : in std_logic;
-         o_sample : OUT  std_logic_vector(15 downto 0)
+         o_sample : OUT  std_logic_vector(15 downto 0);
+		 o_done : out std_logic
         );
     END COMPONENT;
     
@@ -57,6 +58,8 @@ ARCHITECTURE behavior OF tb_eq_filter IS
 
  	--Outputs
    signal o_sample : std_logic_vector(15 downto 0);
+   signal o_done : std_logic;
+   
 
    -- Clock period definitions
    constant clk_period : time := 10 ns;
@@ -69,7 +72,8 @@ BEGIN
           rstn => rstn,
           i_sample => i_sample,
 		  i_start => i_start,
-          o_sample => o_sample
+          o_sample => o_sample,
+		  o_done => o_done
         );
 
    -- Clock process definitions
@@ -88,7 +92,8 @@ BEGIN
  	file stimulus : text is in "SIMULATION_DATA.txt";
 	variable in_line : line;
 	variable in_data : integer;
-   
+	variable a : unsigned(1 downto 0) := "00";
+	
    begin		
 		rstn <= '0';
       wait for 10 ns;	
@@ -99,13 +104,18 @@ BEGIN
 		
 		while not endfile(stimulus) loop
           -- read digital data from input file
-			i_start <= '1';
+			if a mod 3 = 0 then
+				i_start <= '1';
+			else
+				i_start <= '0';
+			end if;
+			a := a + 1;
 			readline(stimulus, in_line);
 			read(in_line, in_data);
 			i_sample <= std_logic_vector(to_signed(in_data,16));
 			wait for clk_period;
 			i_start <= '0';
-			wait for clk_period*6;
+			wait for clk_period*3;
 						
 		end loop;
 		

@@ -25,6 +25,7 @@ entity filtered_agc_top is
     Port ( clk : in  STD_LOGIC;
            rstn : in  STD_LOGIC;
            i_sample : in  STD_LOGIC_VECTOR (15 downto 0);
+		   i_start : in std_logic;
            o_sample : out  STD_LOGIC_VECTOR (15 downto 0);
 		   o_done : out std_logic
 		   );
@@ -37,7 +38,7 @@ architecture Behavioral of filtered_agc_top is
 		Port ( 	clk : in  std_logic;
 				rstn : in  std_logic;
 				i_sample : in  std_logic_vector (15 downto 0);
-				i_next_sample : in std_logic;
+				i_start : in std_logic;
 				o_sample : out  std_logic_vector (15 downto 0);
 				o_done : out std_logic
 				);
@@ -48,7 +49,8 @@ architecture Behavioral of filtered_agc_top is
 				rstn : in  std_logic;
 				i_sample : in  std_logic_vector (15 downto 0);
 				i_start : in std_logic;
-				o_sample : out  std_logic_vector (15 downto 0)
+				o_sample : out  std_logic_vector (15 downto 0);
+				o_done : out std_logic
 				);
 	end component;
 	
@@ -56,10 +58,10 @@ architecture Behavioral of filtered_agc_top is
 		Port (	clk : in  STD_LOGIC;
 				rstn : in  STD_LOGIC;
 				i_sample : in  STD_LOGIC_VECTOR (15 downto 0);
+				i_start : in std_logic;
 				i_gain : in  STD_LOGIC_VECTOR (15 downto 0);
 				o_power : out  STD_LOGIC_VECTOR (7 downto 0);
 				o_sample : out  STD_LOGIC_VECTOR (15 downto 0);
-				o_next_sample : out std_logic;
 				o_done : out std_logic
 				);
 	end component;
@@ -74,8 +76,7 @@ architecture Behavioral of filtered_agc_top is
 	signal P_agc_lut : std_logic_vector(7 downto 0);
 	signal gain_lut_agc : std_logic_vector(15 downto 0);
 	signal sample_hp_eq, sample_eq_agc : std_logic_vector(15 downto 0);
-	signal next_sample_agc_hp : std_logic;
-	signal done_hp_eq : std_logic;
+	signal done_hp_eq, done_eq_agc : std_logic;
 
 
 begin
@@ -85,7 +86,7 @@ begin
 			clk => clk,
 			rstn => rstn,
 			i_sample => i_sample,
-			i_next_sample => next_sample_agc_hp,
+			i_start => i_start,
 			o_sample => sample_hp_eq,
 			o_done => done_hp_eq
 			);
@@ -96,7 +97,8 @@ begin
 			rstn => rstn,
 			i_sample => sample_hp_eq,
 			i_start => done_hp_eq,
-			o_sample => sample_eq_agc
+			o_sample => sample_eq_agc,
+			o_done => done_eq_agc
 			);
 
 
@@ -105,10 +107,10 @@ begin
 			clk => clk,
 			rstn => rstn,
 			i_sample => sample_eq_agc,
+			i_start => done_eq_agc,
 			i_gain => gain_lut_agc,
 			o_power => P_agc_lut,
 			o_sample => o_sample,
-			o_next_sample => next_sample_agc_hp ,
 			o_done => o_done
 			);
 			

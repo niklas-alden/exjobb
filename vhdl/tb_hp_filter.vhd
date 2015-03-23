@@ -43,7 +43,7 @@ ARCHITECTURE behavior OF tb_hp_filter IS
 		 clk : IN  std_logic;
          rstn : IN  std_logic;
          i_sample : IN  std_logic_vector(15 downto 0);
-		 i_next_sample : in std_logic;
+		 i_start : in std_logic;
          o_sample : OUT  std_logic_vector(15 downto 0);
 		 o_done : out std_logic
         );
@@ -54,7 +54,7 @@ ARCHITECTURE behavior OF tb_hp_filter IS
    signal clk : std_logic := '0';
    signal rstn : std_logic := '1';
    signal i_sample : std_logic_vector(15 downto 0) := (others => '0');
-   signal i_next_sample : std_logic;
+   signal i_start : std_logic;
 
  	--Outputs
    signal o_sample : std_logic_vector(15 downto 0);
@@ -70,7 +70,7 @@ BEGIN
           clk => clk,
           rstn => rstn,
           i_sample => i_sample,
-		  i_next_sample => i_next_sample,
+		  i_start => i_start,
           o_sample => o_sample,
 		  o_done => o_done
         );
@@ -91,6 +91,8 @@ BEGIN
  	file stimulus : text is in "SIMULATION_DATA.txt";
 	variable in_line : line;
 	variable in_data : integer;
+	
+	variable a : unsigned(1 downto 0) := "00";
    
    begin		
 		rstn <= '0';
@@ -102,13 +104,19 @@ BEGIN
 		
 		while not endfile(stimulus) loop
           -- read digital data from input file
-			i_next_sample <= '1';
+			if a mod 3 = 0 then
+				i_start <= '1';
+			else
+				i_start <= '0';
+			end if;
+			a := a + 1;
+			
 			readline(stimulus, in_line);
 			read(in_line, in_data);
 			i_sample <= std_logic_vector(to_signed(in_data,16));
 			wait for clk_period;
-			i_next_sample <= '0';
-			wait for clk_period*6;
+			i_start <= '0';
+			wait for clk_period*3;
 						
 		end loop;
 		

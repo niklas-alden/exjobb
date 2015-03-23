@@ -43,6 +43,7 @@ ARCHITECTURE behavior OF tb_filter_agc_top IS
          clk : IN  std_logic;
          rstn : IN  std_logic;
          i_sample : IN  std_logic_vector(15 downto 0);
+		 i_start : in std_logic;
          o_sample : OUT  std_logic_vector(15 downto 0);
 --         o_next_sample : OUT  std_logic;
 		 o_done : out std_logic
@@ -54,6 +55,7 @@ ARCHITECTURE behavior OF tb_filter_agc_top IS
    signal clk : std_logic := '0';
    signal rstn : std_logic := '0';
    signal i_sample : std_logic_vector(15 downto 0) := (others => '0');
+   signal i_start : std_logic := '0';
 
  	--Outputs
    signal o_sample : std_logic_vector(15 downto 0);
@@ -69,6 +71,7 @@ BEGIN
           clk => clk,
           rstn => rstn,
           i_sample => i_sample,
+		  i_start => i_start,
           o_sample => o_sample,
           o_done => o_done
         );
@@ -99,14 +102,13 @@ BEGIN
 	
 		while not endfile(stimulus) loop
           -- read digital data from input file
-			if o_done = '1' then
+				i_start <= '1';
 				readline(stimulus, in_line);
 				read(in_line, in_data);
 				i_sample <= std_logic_vector(to_signed(in_data,16));
 				wait for clk_period;
-			else
-				wait for clk_period;
-			end if;
+				i_start <= '0';
+				wait for clk_period*10;
 			
 		end loop;
 		wait for clk_period*5;

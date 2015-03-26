@@ -20,7 +20,7 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
-use ieee.math_real.all;
+--use ieee.math_real.all;
 
 entity agc is
 	Port ( clk : in  STD_LOGIC;
@@ -72,7 +72,7 @@ begin
 		P_tmp_c <= P_tmp_n(46 downto 15);
 		P_dB_c <= P_dB_n;
 		P_prev_c <= P_prev_n;
-		agc_out_c <= agc_out_n;
+		agc_out_c <= agc_out_n;--(30 downto 15);
 		curr_sample_c <= curr_sample_n;
 	end if;
 	
@@ -88,7 +88,7 @@ begin
 	P_dB_n <= P_dB_c;
 	curr_sample_n <= curr_sample_c;
 	P_prev_n <= P_prev_c;
-	agc_out_n <= agc_out_c;
+	agc_out_n <= agc_out_c;--signed(resize(signed(agc_out_c), 32));
 	o_sample <= std_logic_vector(agc_out_c(30 downto 15));
 	o_power <= std_logic_vector(P_dB_n);
 	o_done <= '0';
@@ -317,7 +317,7 @@ begin
 			if P_dB_c > to_signed(-82,16) then -- optimize
 				agc_out_n <= signed(curr_sample_c) * signed(i_gain); 
 			else
-				agc_out_n <= resize(signed(curr_sample_c), 32); 
+				agc_out_n <= signed(curr_sample_c) * to_signed(32767, 16);--resize(signed(curr_sample_c), 32); 
 			end if;
 	
 			state_n <= SEND;
@@ -325,6 +325,7 @@ begin
 		when SEND =>
 			o_done <= '1';
 			P_prev_n <= unsigned(abs(signed(agc_out_c(30 downto 15))) * abs(signed(agc_out_c(30 downto 15))));
+--			P_prev_n <= unsigned(abs(signed(agc_out_c)) * abs(signed(agc_out_c)));
 			state_n <= HOLD;
 			
 	end case;

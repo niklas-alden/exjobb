@@ -1,5 +1,5 @@
-NET "clk" 			LOC="AH15";
-NET "rstn" 			LOC="AC24";# SW8     "AJ6";  #SW_C
+NET "clk" 			LOC="AH17";# 33MHz clock
+NET "rstn" 			LOC="AC24";# SW8
 
 NET "i_sdata_in" 	LOC="AE18";# | IOSTANDARD=LVCMOS33;
 NET "o_sdata_out" 	LOC="AG16";# | IOSTANDARD=LVCMOS33;

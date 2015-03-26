@@ -84,7 +84,7 @@ begin
 		when HOLD =>
 			if i_start = '1' then
 				state_n <= CALC;
-				x_n <= signed(i_sample);
+				x_n <= signed(i_sample);--(19 downto 4));
 			end if;
 				
 		when CALC =>

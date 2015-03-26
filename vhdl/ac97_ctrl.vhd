@@ -37,11 +37,14 @@ entity ac97_ctrl is
            o_ac97_ctrl_ready : out  STD_LOGIC;-- pulse for one cycle
            
 		   i_L_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- lt chan output from AGC
+--		   i_L_from_AGC : in  STD_LOGIC_VECTOR (19 downto 0);-- lt chan output from AGC
            i_R_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- rt chan output from ADC
+--           i_R_from_AGC : in  STD_LOGIC_VECTOR (19 downto 0);-- rt chan output from ADC
            
-		   o_L_to_AGC : out  STD_LOGIC_VECTOR (19 downto 0);-- lt chan input from ADC to send to AGC
-           o_R_to_AGC : out  STD_LOGIC_VECTOR (19 downto 0);-- rt chan input to DAC
-		   o_AGC_ready : out STD_LOGIC; -- L/R data ready for AGC
+		   o_L_to_AGC : out  STD_LOGIC_VECTOR (15 downto 0);-- lt chan input from ADC to send to AGC
+           o_R_to_AGC : out  STD_LOGIC_VECTOR (15 downto 0);-- rt chan input to DAC
+		   o_L_AGC_ready : out STD_LOGIC; -- L data ready for AGC
+		   o_R_AGC_ready : out STD_LOGIC; -- R data ready for AGC
            
 		   i_latching_cmd : in  STD_LOGIC;
            i_cmd_addr : in  STD_LOGIC_VECTOR(7 downto 0);-- cmd address coming in from ac97cmd state machine
@@ -206,15 +209,17 @@ send_to_agc_proc : process(i_ac97_bit_clk) is
 begin
 
 	if rising_edge(i_ac97_bit_clk) then
-		o_L_to_AGC <= left_in_data(19 downto 0);
-		o_R_to_AGC <= right_in_data(19 downto 0);
+		o_L_to_AGC <= left_in_data(19 downto 4);
+		o_R_to_AGC <= right_in_data(19 downto 4);
 		
 		if bit_cnt_c = 96 then
-			o_AGC_ready <= '1';
+			o_L_AGC_ready <= '1';
+			o_R_AGC_ready <= '1';
 		else
 --			o_L_to_AGC <= (others => '0');
 --			o_R_to_AGC <= (others => '0');
-			o_AGC_ready <= '0';
+			o_L_AGC_ready <= '0';
+			o_R_AGC_ready <= '0';
 		end if;
 	end if;
 	

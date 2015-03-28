@@ -20,7 +20,6 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
---use ieee.math_real.all;
 
 entity agc is
 	Port ( clk : in  STD_LOGIC;
@@ -29,8 +28,8 @@ entity agc is
 		   i_start : in std_logic;
            i_gain : in  STD_LOGIC_VECTOR (15 downto 0);
            o_power : out  STD_LOGIC_VECTOR (7 downto 0);
-           o_sample : out  STD_LOGIC_VECTOR (15 downto 0);
-		   o_done : out STD_LOGIC
+           o_sample : out  STD_LOGIC_VECTOR (15 downto 0)
+		  -- o_done : out STD_LOGIC
 	);
 end agc;
 
@@ -91,7 +90,7 @@ begin
 	agc_out_n <= agc_out_c;--signed(resize(signed(agc_out_c), 32));
 	o_sample <= std_logic_vector(agc_out_c(30 downto 15));
 	o_power <= std_logic_vector(P_dB_n);
-	o_done <= '0';
+	--o_done <= '0';
 	
 	case state_c is
 	
@@ -107,9 +106,9 @@ begin
 			
 		when P_weighted =>
 			if P_in_c > P_prev_c then
-				P_tmp_n <= (32768 - alpha) * P_prev_c(30 downto 0) + alpha * P_in_c;
+				P_tmp_n <= ((32768 - alpha) * P_prev_c(30 downto 0)) + (alpha * P_in_c);
 			else
-				P_tmp_n <= (32768 - beta) * P_prev_c(30 downto 0) + beta * P_in_c;
+				P_tmp_n <= ((32768 - beta) * P_prev_c(30 downto 0)) + (beta * P_in_c);
 			end if;
 			state_n <= P_dB;
 			
@@ -323,7 +322,7 @@ begin
 			state_n <= SEND;
 		
 		when SEND =>
-			o_done <= '1';
+			--o_done <= '1';
 			P_prev_n <= unsigned(abs(signed(agc_out_c(30 downto 15))) * abs(signed(agc_out_c(30 downto 15))));
 --			P_prev_n <= unsigned(abs(signed(agc_out_c)) * abs(signed(agc_out_c)));
 			state_n <= HOLD;

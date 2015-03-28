@@ -42,7 +42,7 @@ architecture Behavioral of ac97_comb is
 	signal cmd_c, cmd_n : std_logic_vector(23 downto 0) := (others => '0');
 	signal attenuation : std_logic_vector(4 downto 0) := (others => '0');
 	
-	type state_type is (MAST_VOL, HP_VOL, L_I_VOL, OUT_VOL, IN_SEL, IN_GAIN, DAC_RATE, ADC_RATE, LOOPBACK);
+	type state_type is (HP_VOL, L_I_VOL, OUT_VOL, IN_SEL, IN_GAIN, DAC_RATE, ADC_RATE);--MAST_VOL , LOOPBACK
 	signal state_c, state_n : state_type := HP_VOL;
 	
 begin

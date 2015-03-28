@@ -20118,13 +20118,17 @@ BEGIN
 
 	wait for i_bit_clk_period*55;
 		
-		for j in 0 to len loop
-			for k in 0 to 1 loop
+		for j in 42 to len-1 loop
+			--for k in 0 to 1 loop
 				for i in 19 downto 0 loop
 					i_sdata_in <= s(j)(i);
 					wait for i_bit_clk_period;
 				end loop;
-			end loop;
+				for i in 19 downto 0 loop
+					i_sdata_in <= s(j+1)(i);
+					wait for i_bit_clk_period;
+				end loop;
+			--end loop;
 			wait for i_bit_clk_period*216;
 		end loop;
 

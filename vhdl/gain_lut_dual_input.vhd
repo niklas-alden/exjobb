@@ -45,7 +45,7 @@ begin
 		dB_max <= i_R_dB;
 	end if;
 
-	gain <= x"7fff"; -- gain = 1
+	--gain <= x"7fff"; -- gain = 1
 	
 		case dB_max is
 				

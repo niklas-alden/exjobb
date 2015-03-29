@@ -22,7 +22,11 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 entity gain_lut is
-    Port ( 	i_L_dB : in  std_logic_vector(7 downto 0);
+    Port ( 	clk : in std_logic;
+			rstn : in std_logic;
+			i_L_enable : in std_logic;
+			i_R_enable : in std_logic;
+			i_L_dB : in  std_logic_vector(7 downto 0);
 			i_R_dB : in  std_logic_vector(7 downto 0);
 			o_L_gain : out  STD_LOGIC_VECTOR (15 downto 0);
 			o_R_gain : out  STD_LOGIC_VECTOR (15 downto 0)
@@ -31,63 +35,80 @@ end gain_lut;
 
 architecture Behavioral of gain_lut is
 
-	signal dB_max : std_logic_vector(7 downto 0) := (others => '0');
-	signal gain : std_logic_vector(15 downto 0) := (others => '0');
+	signal dB_max_c, dB_max_n : std_logic_vector(7 downto 0) := (others => '0');
+	signal gain_c, gain_n : std_logic_vector(15 downto 0) := (others => '0');
 
 begin
 
-lut_proc : process(i_L_dB, i_R_dB) is
+clk_proc : process(clk, rstn) is
+begin
+	if rstn = '0' then
+		dB_max_c <= (others => '0');
+		gain_c <= (others => '0');
+	elsif rising_edge(clk) then
+		dB_max_c <= dB_max_n;
+		gain_c <= gain_n;
+	end if;
+	
+end process;
+
+
+
+lut_proc : process(i_L_enable, i_R_enable, i_L_dB, i_R_dB, gain_c, dB_max_c) is
 begin
 	
-	if i_L_dB > i_R_dB then
-		dB_max <= i_L_dB;
+	if i_L_enable = '1' or i_R_enable = '1' then
+		if i_L_dB > i_R_dB then
+			dB_max_n <= i_L_dB;
+		else
+			dB_max_n <= i_R_dB;
+		end if;
 	else
-		dB_max <= i_R_dB;
+		dB_max_n <= dB_max_c;
 	end if;
 
-	--gain <= x"7fff"; -- gain = 1
-	
-		case dB_max is
-				
-            when x"12" => gain <= x"68b0"; -- 100dB
-            when x"11" => gain <= x"699a"; -- 99dB
-            when x"10" => gain <= x"6a81"; -- 98dB
-            when x"0f" => gain <= x"6b66"; -- 97dB
-            when x"0e" => gain <= x"6c48"; -- 96dB
-            when x"0d" => gain <= x"6d26"; -- 95dB
-            when x"0c" => gain <= x"6e02"; -- 94dB
-            when x"0b" => gain <= x"6edb"; -- 93dB
-            when x"0a" => gain <= x"6fb0"; -- 92dB
-            when x"09" => gain <= x"7083"; -- 91dB
-            when x"08" => gain <= x"7151"; -- 90dB
-            when x"07" => gain <= x"721d"; -- 89dB
-            when x"06" => gain <= x"72e4"; -- 88dB
-            when x"05" => gain <= x"73a8"; -- 87dB
-            when x"04" => gain <= x"7468"; -- 86dB
-            when x"03" => gain <= x"7524"; -- 85dB
-            when x"02" => gain <= x"75db"; -- 84dB
-            when x"01" => gain <= x"768e"; -- 83dB
-            when x"00" => gain <= x"773d"; -- 82dB
-            when x"ff" => gain <= x"77e7"; -- 81dB
-            when x"fe" => gain <= x"788d"; -- 80dB
-            when x"fd" => gain <= x"792d"; -- 79dB
-            when x"fc" => gain <= x"79c8"; -- 78dB
-            when x"fb" => gain <= x"7a5d"; -- 77dB
-            when x"fa" => gain <= x"7aed"; -- 76dB
-            when x"f9" => gain <= x"7b77"; -- 75dB
-            when x"f8" => gain <= x"7bfb"; -- 74dB
-            when x"f7" => gain <= x"7c79"; -- 73dB
-            when x"f6" => gain <= x"7cf0"; -- 72dB
-            when x"f5" => gain <= x"7d60"; -- 71dB
-            when x"f4" => gain <= x"7dc8"; -- 70dB
-            when x"f3" => gain <= x"7e2a"; -- 69dB
-            when x"f2" => gain <= x"7e83"; -- 68dB
-            when x"f1" => gain <= x"7ed5"; -- 67dB
-            when x"f0" => gain <= x"7f1d"; -- 66dB
-            when x"ef" => gain <= x"7f5d"; -- 65dB
-            when x"ee" => gain <= x"7f93"; -- 64dB
-            when x"ed" => gain <= x"7fc0"; -- 63dB
-            when x"ec" => gain <= x"7fe2"; -- 62dB
+
+	case dB_max_c is
+			
+		when x"12" => gain_n <= x"68b0"; -- 100dB
+		when x"11" => gain_n <= x"699a"; -- 99dB
+		when x"10" => gain_n <= x"6a81"; -- 98dB
+		when x"0f" => gain_n <= x"6b66"; -- 97dB
+		when x"0e" => gain_n <= x"6c48"; -- 96dB
+		when x"0d" => gain_n <= x"6d26"; -- 95dB
+		when x"0c" => gain_n <= x"6e02"; -- 94dB
+		when x"0b" => gain_n <= x"6edb"; -- 93dB
+		when x"0a" => gain_n <= x"6fb0"; -- 92dB
+		when x"09" => gain_n <= x"7083"; -- 91dB
+		when x"08" => gain_n <= x"7151"; -- 90dB
+		when x"07" => gain_n <= x"721d"; -- 89dB
+		when x"06" => gain_n <= x"72e4"; -- 88dB
+		when x"05" => gain_n <= x"73a8"; -- 87dB
+		when x"04" => gain_n <= x"7468"; -- 86dB
+		when x"03" => gain_n <= x"7524"; -- 85dB
+		when x"02" => gain_n <= x"75db"; -- 84dB
+		when x"01" => gain_n <= x"768e"; -- 83dB
+		when x"00" => gain_n <= x"773d"; -- 82dB
+		when x"ff" => gain_n <= x"77e7"; -- 81dB
+		when x"fe" => gain_n <= x"788d"; -- 80dB
+		when x"fd" => gain_n <= x"792d"; -- 79dB
+		when x"fc" => gain_n <= x"79c8"; -- 78dB
+		when x"fb" => gain_n <= x"7a5d"; -- 77dB
+		when x"fa" => gain_n <= x"7aed"; -- 76dB
+		when x"f9" => gain_n <= x"7b77"; -- 75dB
+		when x"f8" => gain_n <= x"7bfb"; -- 74dB
+		when x"f7" => gain_n <= x"7c79"; -- 73dB
+		when x"f6" => gain_n <= x"7cf0"; -- 72dB
+		when x"f5" => gain_n <= x"7d60"; -- 71dB
+		when x"f4" => gain_n <= x"7dc8"; -- 70dB
+		when x"f3" => gain_n <= x"7e2a"; -- 69dB
+		when x"f2" => gain_n <= x"7e83"; -- 68dB
+		when x"f1" => gain_n <= x"7ed5"; -- 67dB
+		when x"f0" => gain_n <= x"7f1d"; -- 66dB
+		when x"ef" => gain_n <= x"7f5d"; -- 65dB
+		when x"ee" => gain_n <= x"7f93"; -- 64dB
+		when x"ed" => gain_n <= x"7fc0"; -- 63dB
+		when x"ec" => gain_n <= x"7fe2"; -- 62dB
 --            when x"eb" => gain <= x"7fff"; -- 61dB
 --            when x"ea" => gain <= x"7fff"; -- 60dB
 --            when x"e9" => gain <= x"7fff"; -- 59dB
@@ -149,13 +170,13 @@ begin
 --            when x"b1" => gain <= x"7fff"; -- 3dB
 --            when x"b0" => gain <= x"7fff"; -- 2dB
 --            when x"af" => gain <= x"7fff"; -- 1dB
+	
+		when others => gain_n <= x"7fff"; -- 0dB
 		
-			when others => gain <= x"7fff"; -- 0dB
-			
-		end case;
+	end case;
 
-	o_L_gain <= gain;
-	o_R_gain <= gain;
+	o_L_gain <= gain_c;
+	o_R_gain <= gain_c;
 	
 end process;
 

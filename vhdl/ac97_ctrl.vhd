@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------------
 -- Company: 
--- Engineer: 
+-- Engineer: Niklas Aldén
 -- 
 -- Create Date:    12:15:31 03/20/2015 
 -- Design Name: 
@@ -35,14 +35,10 @@ entity ac97_ctrl is
            i_ac97_bit_clk : in  STD_LOGIC;-- 12.288 MHz clock from ac97
            o_ac97_rstn : out  STD_LOGIC;-- ac97 reset for initialization
            o_ac97_ctrl_ready : out  STD_LOGIC;-- pulse for one cycle
-           
-		   i_L_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- lt chan output from AGC
---		   i_L_from_AGC : in  STD_LOGIC_VECTOR (19 downto 0);-- lt chan output from AGC
-           i_R_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- rt chan output from ADC
---           i_R_from_AGC : in  STD_LOGIC_VECTOR (19 downto 0);-- rt chan output from ADC
-           
-		   o_L_to_AGC : out  STD_LOGIC_VECTOR (15 downto 0);-- lt chan input from ADC to send to AGC
-           o_R_to_AGC : out  STD_LOGIC_VECTOR (15 downto 0);-- rt chan input to DAC
+		   i_L_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- L channel output from AGC
+           i_R_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- R channel output from ADC
+		   o_L_to_AGC : out  STD_LOGIC_VECTOR (15 downto 0);-- L channel input from ADC to send to AGC
+           o_R_to_AGC : out  STD_LOGIC_VECTOR (15 downto 0);-- R channel input to DAC
 		   o_L_AGC_ready : out STD_LOGIC; -- L data ready for AGC
 		   o_R_AGC_ready : out STD_LOGIC; -- R data ready for AGC
            
@@ -71,15 +67,11 @@ architecture Behavioral of ac97_ctrl is
 
 begin
 
--- concat for 18 bit usage can concat further for 16 bit use 
-	-- by using <& "0000"> and <left_in_data(19 downto 4)>
-	-------------------------------------------------------------------------------------
+-- concat for 16 bit usage 
+-------------------------------------------------------------------------------------
 	left_data  <= i_L_from_AGC & "0000";
 	right_data <= i_R_from_AGC & "0000";
 
---	o_L_DAC <= left_in_data(19 downto 0);
---	o_R_DAC <= right_in_data(19 downto 0);
-	
 
 	-- Delay for ac97_reset signal, clk = 100MHz
 	-- delay 37.89 us / 10 ns = 3789 for active low reset on init 
@@ -125,7 +117,6 @@ begin
 		bit_cnt_n <= (others => '0');
 
 	elsif rising_edge(i_ac97_bit_clk) then
-		---o_ac97_sync <= '0';
 		bit_cnt_n <= bit_cnt_c + 1;
 		
 		if bit_cnt_c = 255 then
@@ -216,8 +207,6 @@ begin
 			o_L_AGC_ready <= '1';
 			o_R_AGC_ready <= '1';
 		else
---			o_L_to_AGC <= (others => '0');
---			o_R_to_AGC <= (others => '0');
 			o_L_AGC_ready <= '0';
 			o_R_AGC_ready <= '0';
 		end if;

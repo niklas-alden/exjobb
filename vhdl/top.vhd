@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------------
 -- Company: 
--- Engineer: 
+-- Engineer: Niklas Aldén
 -- 
 -- Create Date:    11:47:44 03/28/2015 
 -- Design Name: 
@@ -52,10 +52,8 @@ architecture Behavioral of top is
 			   o_sync : out  STD_LOGIC;
 			   o_ac97_rstn : out  STD_LOGIC;
 			   i_bit_clk : in  STD_LOGIC;
-			   i_L_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- lt chan output from AGC
-	--		   i_L_from_AGC : in  STD_LOGIC_VECTOR (19 downto 0);-- lt chan output from AGC
-			   i_R_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- rt chan output from AGC
-	--           i_R_from_AGC : in  STD_LOGIC_VECTOR (19 downto 0);-- rt chan output from AGC
+			   i_L_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- L channel output from AGC
+			   i_R_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- R channel output from AGC
 			   o_L_to_AGC : out  STD_LOGIC_VECTOR (15 downto 0);-- L channel input from ADC to send to AGC
 			   o_R_to_AGC : out  STD_LOGIC_VECTOR (15 downto 0);-- R channel input from ADC to send to AGC
 			   o_L_AGC_start : out STD_LOGIC; -- L data ready for AGC
@@ -89,14 +87,18 @@ architecture Behavioral of top is
 			   i_sample : in  STD_LOGIC_VECTOR (15 downto 0);
 			   i_start : in std_logic;
 			   i_gain : in  STD_LOGIC_VECTOR (15 downto 0);
+			   o_gain_fetch : out std_logic;
 			   o_power : out  STD_LOGIC_VECTOR (7 downto 0);
 			   o_sample : out  STD_LOGIC_VECTOR (15 downto 0)
-			 --  o_done : out STD_LOGIC
 		);
 	end component;
 
 	component gain_lut is
-		Port ( 	i_L_dB : in  std_logic_vector(7 downto 0);
+		Port ( 	clk : in std_logic;
+				rstn : in std_logic;
+				i_L_enable : in std_logic;
+				i_R_enable : in std_logic;
+				i_L_dB : in  std_logic_vector(7 downto 0);
 				i_R_dB : in  std_logic_vector(7 downto 0);
 				o_L_gain : out  STD_LOGIC_VECTOR (15 downto 0);
 				o_R_gain : out  STD_LOGIC_VECTOR (15 downto 0)
@@ -115,6 +117,7 @@ architecture Behavioral of top is
 -- AGC <-> GAIN LUT
 	signal L_power_agc_lut, R_power_agc_lut : std_logic_vector(7 downto 0);
 	signal L_gain_lut_agc, R_gain_lut_agc : std_logic_vector(15 downto 0);
+	signal L_fetch_agc_lut, R_fetch_agc_lut : std_logic;
 -- AGC -> AC97
 	signal L_sample_agc_ac97, R_sample_agc_ac97 : std_logic_vector(15 downto 0);
 	
@@ -168,9 +171,9 @@ begin
 			i_sample 	=> L_sample_eq_agc,
 			i_start 	=> L_start_eq_agc,
 			i_gain 		=> L_gain_lut_agc,
+			o_gain_fetch => L_fetch_agc_lut,
 			o_power 	=> L_power_agc_lut,
 			o_sample 	=> L_sample_agc_ac97
-			--o_done =>
 			);
 
 -- RIGHT CHANNEL
@@ -202,13 +205,17 @@ begin
 			i_sample 	=> R_sample_eq_agc,
 			i_start 	=> R_start_eq_agc,
 			i_gain 		=> R_gain_lut_agc,
+			o_gain_fetch => R_fetch_agc_lut,
 			o_power 	=> R_power_agc_lut,
 			o_sample 	=> R_sample_agc_ac97
-			--o_done =>
 			);
 			
 	gain_lut_inst : gain_lut
 		port map (
+			clk			=> clk,
+			rstn		=> rstn,
+			i_L_enable	=> L_fetch_agc_lut,
+			i_R_enable	=> R_fetch_agc_lut,
 			i_L_dB 		=> L_power_agc_lut,
 			i_R_dB 		=> R_power_agc_lut,
 			o_L_gain 	=> L_gain_lut_agc,

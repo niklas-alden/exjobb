@@ -28,8 +28,8 @@ entity agc is
 		   i_start : in std_logic;
            i_gain : in  STD_LOGIC_VECTOR (15 downto 0);
            o_power : out  STD_LOGIC_VECTOR (7 downto 0);
+		   o_gain_fetch : out std_logic;
            o_sample : out  STD_LOGIC_VECTOR (15 downto 0)
-		  -- o_done : out STD_LOGIC
 	);
 end agc;
 
@@ -47,8 +47,9 @@ architecture Behavioral of agc is
 	signal agc_out_c : signed(31 downto 0) := (others => '0');
 	signal agc_out_n : signed(31 downto 0) := (others => '0');
 	signal curr_sample_c, curr_sample_n : signed(15 downto 0) := (others => '0');
+	signal lut_delay_c, lut_delay_n : unsigned(0 downto 0) := (others => '0');
 	
-	type state_type is (HOLD, P_curr, P_weighted, P_dB, GAIN, SEND);
+	type state_type is (HOLD, P_curr, P_weighted, P_dB, FETCH_GAIN, GAIN, SEND);
 	signal state_c, state_n : state_type := HOLD;
 	
 
@@ -65,20 +66,22 @@ begin
 		P_prev_c <= (others => '0');
 		agc_out_c <= (others => '0');
 		curr_sample_c <= (others => '0');
+		lut_delay_c <= (others => '0');
 	elsif rising_edge(clk) then
 		state_c <= state_n;
 		P_in_c <= P_in_n(30 downto 0);
 		P_tmp_c <= P_tmp_n(46 downto 15);
 		P_dB_c <= P_dB_n;
 		P_prev_c <= P_prev_n;
-		agc_out_c <= agc_out_n;--(30 downto 15);
+		agc_out_c <= agc_out_n;
 		curr_sample_c <= curr_sample_n;
+		lut_delay_c <= lut_delay_n;
 	end if;
 	
 end process;
 
 
-power_proc : process(state_c, curr_sample_c, P_in_c, P_tmp_c, P_dB_c, P_prev_c, agc_out_c, i_sample, i_start, i_gain) is
+power_proc : process(state_c, curr_sample_c, P_in_c, P_tmp_c, P_dB_c, P_prev_c, agc_out_c, i_sample, i_start, i_gain, lut_delay_c) is
 begin
 	--default
 	state_n <= state_c;
@@ -87,10 +90,11 @@ begin
 	P_dB_n <= P_dB_c;
 	curr_sample_n <= curr_sample_c;
 	P_prev_n <= P_prev_c;
-	agc_out_n <= agc_out_c;--signed(resize(signed(agc_out_c), 32));
+	agc_out_n <= agc_out_c;
 	o_sample <= std_logic_vector(agc_out_c(30 downto 15));
 	o_power <= std_logic_vector(P_dB_n);
-	--o_done <= '0';
+	o_gain_fetch <= '0';
+	lut_delay_n <= lut_delay_c;
 	
 	case state_c is
 	
@@ -310,21 +314,31 @@ begin
 			else									-- >=0dB
 				P_dB_n <= to_signed(-82, 8);
 			end if;
-			state_n <= GAIN;
+					
+			state_n <= FETCH_GAIN;
+			
+		when FETCH_GAIN =>
+			if lut_delay_c = 0 then
+				o_gain_fetch <= '1';
+				lut_delay_n <= lut_delay_c + 1;
+				state_n <= FETCH_GAIN;
+			else
+				state_n <= GAIN;
+				lut_delay_n <= (others => '0');
+			end if;
+			
 			
 		when GAIN =>
 			if P_dB_c > to_signed(-82,16) then -- optimize
 				agc_out_n <= signed(curr_sample_c) * signed(i_gain); 
 			else
-				agc_out_n <= signed(curr_sample_c) * to_signed(32767, 16);--resize(signed(curr_sample_c), 32); 
+				agc_out_n <= signed(curr_sample_c) * to_signed(32767, 16);
 			end if;
 	
 			state_n <= SEND;
 		
 		when SEND =>
-			--o_done <= '1';
 			P_prev_n <= unsigned(abs(signed(agc_out_c(30 downto 15))) * abs(signed(agc_out_c(30 downto 15))));
---			P_prev_n <= unsigned(abs(signed(agc_out_c)) * abs(signed(agc_out_c)));
 			state_n <= HOLD;
 			
 	end case;

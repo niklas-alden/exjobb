@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 -- Company: 
--- Engineer:
+-- Engineer: Niklas Aldén
 --
 -- Create Date:   17:00:43 03/25/2015
 -- Design Name:   
@@ -20125,7 +20125,7 @@ BEGIN
 					wait for i_bit_clk_period;
 				end loop;
 				for i in 19 downto 0 loop
-					i_sdata_in <= s(j+1)(i);
+					i_sdata_in <= s(j)(i);
 					wait for i_bit_clk_period;
 				end loop;
 			--end loop;

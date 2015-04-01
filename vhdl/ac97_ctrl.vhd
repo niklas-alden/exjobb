@@ -41,8 +41,7 @@ entity ac97_ctrl is
            o_R_to_AGC : out  STD_LOGIC_VECTOR (15 downto 0);-- R channel input to DAC
 		   o_L_AGC_ready : out STD_LOGIC; -- L data ready for AGC
 		   o_R_AGC_ready : out STD_LOGIC; -- R data ready for AGC
-           
-		   i_latching_cmd : in  STD_LOGIC;
+--		   i_latching_cmd : in  STD_LOGIC;
            i_cmd_addr : in  STD_LOGIC_VECTOR(7 downto 0);-- cmd address coming in from ac97cmd state machine
            i_cmd_data : in  STD_LOGIC_VECTOR(15 downto 0)-- cmd data coming in from ac97cmd state machine
 		   );
@@ -52,7 +51,7 @@ architecture Behavioral of ac97_ctrl is
 
 	signal Q1, Q2 : std_logic := '0';-- signals to deliver one cycle pulse at specified time
 	signal bit_cnt_c, bit_cnt_n : unsigned(7 downto 0) := (others => '0');-- counter for aligning slots
-	signal reset_cnt : integer range 0 to 4095 := 0;-- counter to set ac97_reset high for ac97 init
+	signal reset_cnt : integer range 0 to 34 := 0;-- counter to set ac97_reset high for ac97 init
 	
 	signal latch_cmd_addr : std_logic_vector(19 downto 0) := (others => '0');-- signals to latch in registers and commands
 	signal latch_cmd_data   : std_logic_vector(19 downto 0) := (others => '0');
@@ -73,22 +72,20 @@ begin
 	right_data <= i_R_from_AGC & "0000";
 
 
-	-- Delay for ac97_reset signal, clk = 100MHz
-	-- delay 37.89 us / 10 ns = 3789 for active low reset on init 
+	-- Delay for ac97_reset signal, clk = 33MHz
+	-- delay 1 us / 30.3 ns = 33 for active low reset on init 
 	--------------------------------------------------------------------------------------
 clk_proc : process(clk, rstn) is
 begin
 	if rising_edge(clk) then
 		bit_cnt_c <= bit_cnt_n;
+		reset_cnt <= reset_cnt + 1;
 		if rstn = '0' then
 			bit_cnt_c <= (others => '0');
 			reset_cnt <= 0;
 			o_ac97_rstn <= '0';
-		elsif reset_cnt = 3789 then
+		elsif reset_cnt = 33 then -- 1ms @ 33MHz, COLD RESET
 			reset_cnt <= 0;
-			o_ac97_rstn <= '1';
-		else
-			reset_cnt <= reset_cnt + 1;
 			o_ac97_rstn <= '1';
 		end if;
 	end if;
@@ -139,7 +136,7 @@ begin
 			-- Slot 0 : Tag Phase
 			case bit_cnt_c is
 				when x"00" => o_ac97_sdata_out <= '1';-- AC Link Interface ready
-				when x"01" => o_ac97_sdata_out <= i_latching_cmd;-- Vaild Status Adress or Slot request
+				when x"01" => o_ac97_sdata_out <= '1';--i_latching_cmd;-- Vaild Status Adress or Slot request
 				when x"02" => o_ac97_sdata_out <= '1';-- Valid Status data
 				when x"03" => o_ac97_sdata_out <= '1';-- Valid PCM Data (Left ADC)
 				when x"04" => o_ac97_sdata_out <= '1';-- Valid PCM Data (Right ADC)
@@ -148,19 +145,19 @@ begin
 		
 		elsif (bit_cnt_c >= 16) and (bit_cnt_c <= 35) then -- bit count 16 to 35
 			-- Slot 1 : Command address (8-bits, left justified)
-			if i_latching_cmd = '1' then
+--			if i_latching_cmd = '1' then
 				o_ac97_sdata_out <= latch_cmd_addr(35 - to_integer(bit_cnt_c));
-			else
-				o_ac97_sdata_out <= '0';
-			end if;
+--			else
+--				o_ac97_sdata_out <= '0';
+--			end if;
 			
 		elsif (bit_cnt_c >= 36) and (bit_cnt_c <= 55) then -- bit count 36 to 55
 			-- Slot 2 : Command data (16-bits, left justified)
-			if i_latching_cmd = '1' then
+--			if i_latching_cmd = '1' then
 				o_ac97_sdata_out <= latch_cmd_data(55 - to_integer(bit_cnt_c));
-			else
-				o_ac97_sdata_out <= '0';
-			end if;
+--			else
+--				o_ac97_sdata_out <= '0';
+--			end if;
 		
 		elsif (bit_cnt_c >= 56) and (bit_cnt_c <= 75) then -- bit count 56 to 75
 			-- Slot 3 : left channel

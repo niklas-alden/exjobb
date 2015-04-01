@@ -56,8 +56,8 @@ component ac97_comb is
            i_ac97_ctrl_ready : in  STD_LOGIC;
            i_volume : in  STD_LOGIC_VECTOR (4 downto 0);
            o_cmd_addr : out  STD_LOGIC_VECTOR (7 downto 0);
-           o_cmd_data : out  STD_LOGIC_VECTOR (15 downto 0);
-           o_latching_cmd : out  STD_LOGIC
+           o_cmd_data : out  STD_LOGIC_VECTOR (15 downto 0)--;
+--           o_latching_cmd : out  STD_LOGIC
 		   );
 end component;
 
@@ -77,7 +77,7 @@ component ac97_ctrl is
            o_R_to_AGC : out  STD_LOGIC_VECTOR (15 downto 0);-- R channel input to DAC
 		   o_L_AGC_ready : out STD_LOGIC; -- L data ready for AGC
 		   o_R_AGC_ready : out STD_LOGIC; -- R data ready for AGC
-           i_latching_cmd : in  STD_LOGIC;
+--           i_latching_cmd : in  STD_LOGIC;
            i_cmd_addr : in  STD_LOGIC_VECTOR(7 downto 0);-- cmd address coming in from ac97cmd state machine
            i_cmd_data : in  STD_LOGIC_VECTOR(15 downto 0)-- cmd data coming in from ac97cmd state machine
 		   );
@@ -85,7 +85,7 @@ end component;
 
 	signal cmd_addr_comb_ctrl : std_logic_vector(7 downto 0);
 	signal cmd_data_comb_ctrl : std_logic_vector(15 downto 0);
-	signal latching_data_comb_ctrl : std_logic;
+--	signal latching_data_comb_ctrl : std_logic;
 	signal ready_ctrl_comb : std_logic;
 
 	
@@ -99,8 +99,8 @@ begin
 			i_ac97_ctrl_ready 	=> ready_ctrl_comb,
 			i_volume 			=> i_volume,
 			o_cmd_addr 			=> cmd_addr_comb_ctrl,
-			o_cmd_data 			=> cmd_data_comb_ctrl,
-			o_latching_cmd 		=> latching_data_comb_ctrl
+			o_cmd_data 			=> cmd_data_comb_ctrl--,
+--			o_latching_cmd 		=> latching_data_comb_ctrl
 			);
 			
 	ac97_ctrl_inst : ac97_ctrl
@@ -119,7 +119,7 @@ begin
 			o_R_to_AGC 			=> o_R_to_AGC,
 			o_L_AGC_ready 		=> o_L_AGC_start,
 			o_R_AGC_ready 		=> o_R_AGC_start,
-			i_latching_cmd 		=> latching_data_comb_ctrl,
+--			i_latching_cmd 		=> latching_data_comb_ctrl,
 			i_cmd_addr 			=> cmd_addr_comb_ctrl,
 			i_cmd_data 			=> cmd_data_comb_ctrl
 			);

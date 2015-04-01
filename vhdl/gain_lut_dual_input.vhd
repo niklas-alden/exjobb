@@ -1,64 +1,56 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: Niklas Aldén
+-- Engineer: 		Niklas Aldén
 -- 
--- Create Date:    12:17:19 03/11/2015 
--- Design Name: 
--- Module Name:    gain_lut - Behavioral 
--- Project Name: 
--- Target Devices: 
--- Tool versions: 
--- Description: 
---
--- Dependencies: 
---
--- Revision: 
--- Revision 0.01 - File Created
--- Additional Comments: 
+-- Create Date:    	12:17:19 03/11/2015 
+-- Module Name:    	gain_lut - Behavioral 
+-- Project Name: 	Hardware implementation of AGC for active hearing protectors
+-- Description: 	Master Thesis
 --
 ----------------------------------------------------------------------------------
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.ALL;
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 entity gain_lut is
-    Port ( 	clk : in std_logic;
-			rstn : in std_logic;
-			i_L_enable : in std_logic;
-			i_R_enable : in std_logic;
-			i_L_dB : in  std_logic_vector(7 downto 0);
-			i_R_dB : in  std_logic_vector(7 downto 0);
-			o_L_gain : out  STD_LOGIC_VECTOR (15 downto 0);
-			o_R_gain : out  STD_LOGIC_VECTOR (15 downto 0)
+    Port ( 	clk 		: in std_logic;						-- clock
+			rstn 		: in std_logic;						-- reset, active low
+			i_L_enable 	: in std_logic;						-- enable signal from left channel AGC
+			i_R_enable 	: in std_logic;						-- enable signal from right channel AGC
+			i_L_dB 		: in std_logic_vector(7 downto 0);	-- power from left channel AGC
+			i_R_dB 		: in std_logic_vector(7 downto 0);	-- power from right channel AGC
+			o_L_gain 	: out std_logic_vector(15 downto 0);-- output gain to left channel AGC
+			o_R_gain 	: out std_logic_vector(15 downto 0)	-- output gain to right channel AGC
 		);
 end gain_lut;
 
 architecture Behavioral of gain_lut is
 
-	signal dB_max_c, dB_max_n : std_logic_vector(7 downto 0) := (others => '0');
-	signal gain_c, gain_n : std_logic_vector(15 downto 0) := (others => '0');
+	signal dB_max_c, dB_max_n 	: std_logic_vector(7 downto 0) := (others => '0'); -- max power
+	signal gain_c, gain_n 		: std_logic_vector(15 downto 0) := (others => '0'); -- gain corresponding to max power
 
 begin
 
+-- clock process
+----------------------------------------------------------------------------------
 clk_proc : process(clk, rstn) is
 begin
 	if rstn = '0' then
-		dB_max_c <= (others => '0');
-		gain_c <= (others => '0');
+		dB_max_c 	<= (others => '0');
+		gain_c 		<= (others => '0');
 	elsif rising_edge(clk) then
-		dB_max_c <= dB_max_n;
-		gain_c <= gain_n;
+		dB_max_c 	<= dB_max_n;
+		gain_c 		<= gain_n;
 	end if;
 	
 end process;
 
 
-
+-- compare power of left and right channel, max power determines gain for both channels
+----------------------------------------------------------------------------------
 lut_proc : process(i_L_enable, i_R_enable, i_L_dB, i_R_dB, gain_c, dB_max_c) is
 begin
-	
 	if i_L_enable = '1' or i_R_enable = '1' then
-		if i_L_dB > i_R_dB then
+		if i_L_dB > i_R_dB then -- compare left and right channel
 			dB_max_n <= i_L_dB;
 		else
 			dB_max_n <= i_R_dB;
@@ -67,8 +59,7 @@ begin
 		dB_max_n <= dB_max_c;
 	end if;
 
-
-	case dB_max_c is
+	case dB_max_c is -- set corresponding gain
 			
 		when x"12" => gain_n <= x"68b0"; -- 100dB
 		when x"11" => gain_n <= x"699a"; -- 99dB
@@ -109,72 +100,12 @@ begin
 		when x"ee" => gain_n <= x"7f93"; -- 64dB
 		when x"ed" => gain_n <= x"7fc0"; -- 63dB
 		when x"ec" => gain_n <= x"7fe2"; -- 62dB
---            when x"eb" => gain <= x"7fff"; -- 61dB
---            when x"ea" => gain <= x"7fff"; -- 60dB
---            when x"e9" => gain <= x"7fff"; -- 59dB
---            when x"e8" => gain <= x"7fff"; -- 58dB
---            when x"e7" => gain <= x"7fff"; -- 57dB
---            when x"e6" => gain <= x"7fff"; -- 56dB
---            when x"e5" => gain <= x"7fff"; -- 55dB
---            when x"e4" => gain <= x"7fff"; -- 54dB
---            when x"e3" => gain <= x"7fff"; -- 53dB
---            when x"e2" => gain <= x"7fff"; -- 52dB
---            when x"e1" => gain <= x"7fff"; -- 51dB
---            when x"e0" => gain <= x"7fff"; -- 50dB
---            when x"df" => gain <= x"7fff"; -- 49dB
---            when x"de" => gain <= x"7fff"; -- 48dB
---            when x"dd" => gain <= x"7fff"; -- 47dB
---            when x"dc" => gain <= x"7fff"; -- 46dB
---            when x"db" => gain <= x"7fff"; -- 45dB
---            when x"da" => gain <= x"7fff"; -- 44dB
---            when x"d9" => gain <= x"7fff"; -- 43dB
---            when x"d8" => gain <= x"7fff"; -- 42dB
---            when x"d7" => gain <= x"7fff"; -- 41dB
---            when x"d6" => gain <= x"7fff"; -- 40dB
---            when x"d5" => gain <= x"7fff"; -- 39dB
---            when x"d4" => gain <= x"7fff"; -- 38dB
---            when x"d3" => gain <= x"7fff"; -- 37dB
---            when x"d2" => gain <= x"7fff"; -- 36dB
---            when x"d1" => gain <= x"7fff"; -- 35dB
---            when x"d0" => gain <= x"7fff"; -- 34dB
---            when x"cf" => gain <= x"7fff"; -- 33dB
---            when x"ce" => gain <= x"7fff"; -- 32dB
---            when x"cd" => gain <= x"7fff"; -- 31dB
---            when x"cc" => gain <= x"7fff"; -- 30dB
---            when x"cb" => gain <= x"7fff"; -- 29dB
---            when x"ca" => gain <= x"7fff"; -- 28dB
---            when x"c9" => gain <= x"7fff"; -- 27dB
---            when x"c8" => gain <= x"7fff"; -- 26dB
---            when x"c7" => gain <= x"7fff"; -- 25dB
---            when x"c6" => gain <= x"7fff"; -- 24dB
---            when x"c5" => gain <= x"7fff"; -- 23dB
---            when x"c4" => gain <= x"7fff"; -- 22dB
---            when x"c3" => gain <= x"7fff"; -- 21dB
---            when x"c2" => gain <= x"7fff"; -- 20dB
---            when x"c1" => gain <= x"7fff"; -- 19dB
---            when x"c0" => gain <= x"7fff"; -- 18dB
---            when x"bf" => gain <= x"7fff"; -- 17dB
---            when x"be" => gain <= x"7fff"; -- 16dB
---            when x"bd" => gain <= x"7fff"; -- 15dB
---            when x"bc" => gain <= x"7fff"; -- 14dB
---            when x"bb" => gain <= x"7fff"; -- 13dB
---            when x"ba" => gain <= x"7fff"; -- 12dB
---            when x"b9" => gain <= x"7fff"; -- 11dB
---            when x"b8" => gain <= x"7fff"; -- 10dB
---            when x"b7" => gain <= x"7fff"; -- 9dB
---            when x"b6" => gain <= x"7fff"; -- 8dB
---            when x"b5" => gain <= x"7fff"; -- 7dB
---            when x"b4" => gain <= x"7fff"; -- 6dB
---            when x"b3" => gain <= x"7fff"; -- 5dB
---            when x"b2" => gain <= x"7fff"; -- 4dB
---            when x"b1" => gain <= x"7fff"; -- 3dB
---            when x"b0" => gain <= x"7fff"; -- 2dB
---            when x"af" => gain <= x"7fff"; -- 1dB
-	
+
 		when others => gain_n <= x"7fff"; -- 0dB
 		
 	end case;
 
+	-- return same gain to left and right channel AGC
 	o_L_gain <= gain_c;
 	o_R_gain <= gain_c;
 	

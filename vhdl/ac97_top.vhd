@@ -1,94 +1,69 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: Niklas Aldén
+-- Engineer: 		Niklas Aldén
 -- 
--- Create Date:    17:12:17 03/20/2015 
--- Design Name: 
--- Module Name:    ac97_top - Behavioral 
--- Project Name: 
--- Target Devices: 
--- Tool versions: 
--- Description: 
---
--- Dependencies: 
---
--- Revision: 
--- Revision 0.01 - File Created
--- Additional Comments: 
+-- Create Date:    	17:12:17 03/20/2015 
+-- Module Name:    	ac97_top - Behavioral 
+-- Project Name: 	Hardware implementation of AGC for active hearing protectors
+-- Description: 	Master Thesis
 --
 ----------------------------------------------------------------------------------
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx primitives in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
+library ieee;
+use ieee.std_logic_1164.all;
 
 entity ac97_top is
-    Port ( clk : in  STD_LOGIC;
-           rstn : in  STD_LOGIC;
-           i_volume : in  STD_LOGIC_VECTOR (4 downto 0);
-           i_sdata_in : in  STD_LOGIC;
-           o_sdata_out : out  STD_LOGIC;
-           o_sync : out  STD_LOGIC;
-           o_ac97_rstn : out  STD_LOGIC;
-           i_bit_clk : in  STD_LOGIC;
-		   i_L_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- L channel output from AGC
-		   i_R_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- R channel output from AGC
-		   o_L_to_AGC : out  STD_LOGIC_VECTOR (15 downto 0);-- L channel input from ADC to send to AGC
-           o_R_to_AGC : out  STD_LOGIC_VECTOR (15 downto 0);-- R channel input from ADC to send to AGC
-		   o_L_AGC_start : out STD_LOGIC; -- L data ready for AGC
-		   o_R_AGC_start : out STD_LOGIC -- R data ready for AGC
+    Port ( clk 			: in std_logic;						-- clock
+           rstn 		: in std_logic;						-- reset, active low
+           i_volume 	: in std_logic_vector(4 downto 0);	-- volume, set by user
+           i_sdata_in 	: in std_logic;						-- input data from codec
+           o_sdata_out 	: out std_logic;					-- output data to codec
+           o_sync 		: out std_logic;					-- sync signal to codec
+           o_ac97_rstn 	: out std_logic;					-- ac97 codec reset, active low
+           i_bit_clk 	: in std_logic;						-- 12.288 MHz clock from codec
+		   i_L_from_AGC : in std_logic_vector(15 downto 0);	-- L channel data from AGC
+		   i_R_from_AGC : in std_logic_vector(15 downto 0);	-- R channel data from AGC
+		   o_L_to_AGC 	: out std_logic_vector(15 downto 0);-- L channel data from ADC to send to AGC
+           o_R_to_AGC 	: out std_logic_vector(15 downto 0);-- R channel data from ADC to send to AGC
+		   o_L_AGC_start : out std_logic; 					-- L channel data ready for AGC
+		   o_R_AGC_start : out std_logic 					-- R channel data ready for AGC
 		   );
 end ac97_top;
 
 architecture Behavioral of ac97_top is
 
+	component ac97_comb is
+		Port ( clk 				: in std_logic;
+			   rstn 			: in std_logic;
+			   i_ac97_ctrl_ready : in std_logic;
+			   i_volume 		: in std_logic_vector(4 downto 0);
+			   o_cmd_addr 		: out std_logic_vector(7 downto 0);
+			   o_cmd_data 		: out std_logic_vector(15 downto 0)
+			   );
+	end component;
 
-component ac97_comb is
-    Port ( clk : in  STD_LOGIC;
-           rstn : in  STD_LOGIC;
-           i_ac97_ctrl_ready : in  STD_LOGIC;
-           i_volume : in  STD_LOGIC_VECTOR (4 downto 0);
-           o_cmd_addr : out  STD_LOGIC_VECTOR (7 downto 0);
-           o_cmd_data : out  STD_LOGIC_VECTOR (15 downto 0)--;
---           o_latching_cmd : out  STD_LOGIC
-		   );
-end component;
-
-
-component ac97_ctrl is
-    Port ( clk : in  STD_LOGIC;
-           rstn : in  STD_LOGIC;
-           i_ac97_sdata_in : in  STD_LOGIC;-- ac97 input from SDATA_IN
-           o_ac97_sdata_out : out  STD_LOGIC;-- ac97 output to SDATA_OUT
-           o_ac97_sync : out  STD_LOGIC;-- SYNC signal to ac97
-           i_ac97_bit_clk : in  STD_LOGIC;-- 12.288 MHz clock from ac97
-           o_ac97_rstn : out  STD_LOGIC;-- ac97 reset for initialization
-           o_ac97_ctrl_ready : out  STD_LOGIC;-- pulse for one cycle
-		   i_L_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- L channel output from AGC
-           i_R_from_AGC : in  STD_LOGIC_VECTOR (15 downto 0);-- R channel output from ADC
-		   o_L_to_AGC : out  STD_LOGIC_VECTOR (15 downto 0);-- L chanmel input from ADC to send to AGC
-           o_R_to_AGC : out  STD_LOGIC_VECTOR (15 downto 0);-- R channel input to DAC
-		   o_L_AGC_ready : out STD_LOGIC; -- L data ready for AGC
-		   o_R_AGC_ready : out STD_LOGIC; -- R data ready for AGC
---           i_latching_cmd : in  STD_LOGIC;
-           i_cmd_addr : in  STD_LOGIC_VECTOR(7 downto 0);-- cmd address coming in from ac97cmd state machine
-           i_cmd_data : in  STD_LOGIC_VECTOR(15 downto 0)-- cmd data coming in from ac97cmd state machine
-		   );
-end component;
-
-	signal cmd_addr_comb_ctrl : std_logic_vector(7 downto 0);
-	signal cmd_data_comb_ctrl : std_logic_vector(15 downto 0);
---	signal latching_data_comb_ctrl : std_logic;
-	signal ready_ctrl_comb : std_logic;
-
-	
+	component ac97_ctrl is
+		Port ( clk 				: in std_logic;
+			   rstn 			: in std_logic;
+			   i_ac97_sdata_in 	: in std_logic;
+			   o_ac97_sdata_out : out std_logic;
+			   o_ac97_sync 		: out std_logic;
+			   i_ac97_bit_clk 	: in std_logic;
+			   o_ac97_rstn 		: out std_logic;
+			   o_ac97_ctrl_ready : out std_logic;
+			   i_L_from_AGC 	: in std_logic_vector(15 downto 0);
+			   i_R_from_AGC 	: in std_logic_vector(15 downto 0);
+			   o_L_to_AGC 		: out std_logic_vector(15 downto 0);
+			   o_R_to_AGC 		: out std_logic_vector(15 downto 0);
+			   o_L_AGC_ready 	: out std_logic;
+			   o_R_AGC_ready 	: out std_logic;
+			   i_cmd_addr 		: in std_logic_vector(7 downto 0);
+			   i_cmd_data 		: in std_logic_vector(15 downto 0)
+			   );
+	end component;
+-- COMBINATORIAL FSM -> CONTROLLER
+	signal cmd_addr_comb_ctrl 	: std_logic_vector(7 downto 0);
+	signal cmd_data_comb_ctrl 	: std_logic_vector(15 downto 0);
+-- CONTROLLER -> COMBINATORIAL FSM
+	signal ready_ctrl_comb 		: std_logic;
 
 begin
 
@@ -99,8 +74,7 @@ begin
 			i_ac97_ctrl_ready 	=> ready_ctrl_comb,
 			i_volume 			=> i_volume,
 			o_cmd_addr 			=> cmd_addr_comb_ctrl,
-			o_cmd_data 			=> cmd_data_comb_ctrl--,
---			o_latching_cmd 		=> latching_data_comb_ctrl
+			o_cmd_data 			=> cmd_data_comb_ctrl
 			);
 			
 	ac97_ctrl_inst : ac97_ctrl
@@ -119,7 +93,6 @@ begin
 			o_R_to_AGC 			=> o_R_to_AGC,
 			o_L_AGC_ready 		=> o_L_AGC_start,
 			o_R_AGC_ready 		=> o_R_AGC_start,
---			i_latching_cmd 		=> latching_data_comb_ctrl,
 			i_cmd_addr 			=> cmd_addr_comb_ctrl,
 			i_cmd_data 			=> cmd_data_comb_ctrl
 			);

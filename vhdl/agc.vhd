@@ -1,121 +1,117 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: Niklas Aldén
+-- Engineer: 		Niklas Aldén
 -- 
--- Create Date:    20:09:18 03/10/2015 
--- Design Name: 
--- Module Name:    agc - Behavioral 
--- Project Name: 
--- Target Devices: 
--- Tool versions: 
--- Description: 
---
--- Dependencies: 
---
--- Revision: 
--- Revision 0.01 - File Created
--- Additional Comments: 
+-- Create Date:		20:09:18 03/10/2015 
+-- Module Name:		agc - Behavioral 
+-- Project Name: 	Hardware implementation of AGC for active hearing protectors
+-- Description: 	Master Thesis
 --
 ----------------------------------------------------------------------------------
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.ALL;
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 entity agc is
-	Port ( clk : in  STD_LOGIC;
-           rstn : in  STD_LOGIC;
-           i_sample : in  STD_LOGIC_VECTOR (15 downto 0);
-		   i_start : in std_logic;
-           i_gain : in  STD_LOGIC_VECTOR (15 downto 0);
-           o_power : out  STD_LOGIC_VECTOR (7 downto 0);
-		   o_gain_fetch : out std_logic;
-           o_sample : out  STD_LOGIC_VECTOR (15 downto 0)
+	Port ( clk 			: in std_logic;						-- clock
+           rstn 		: in std_logic;						-- reset, active low
+           i_sample 	: in std_logic_vector(15 downto 0);	-- input sample from equalizer filter
+		   i_start 		: in std_logic;						-- start signal from equalizer filter
+           i_gain 		: in std_logic_vector(15 downto 0);	-- gain fetched from LUT
+           o_power 		: out std_logic_vector(7 downto 0);	-- sample power to LUT
+		   o_gain_fetch : out std_logic;					-- enable signal for LUT
+           o_sample 	: out std_logic_vector(15 downto 0)	-- output sample to AC97
 	);
 end agc;
 
 architecture Behavioral of agc is
 
-	constant alpha : unsigned(15 downto 0) := to_unsigned(164, 16);
-	constant beta : unsigned(15 downto 0) := to_unsigned(983, 16);
+	-- time parameters
+	constant alpha 	: unsigned(15 downto 0) := to_unsigned(164, 16); -- attack time
+	constant beta 	: unsigned(15 downto 0) := to_unsigned(983, 16); -- release time
 	
-	signal P_in_c : unsigned(30 downto 0) := (others => '0');
-	signal P_in_n : unsigned(31 downto 0) := (others => '0');
-	signal P_tmp_c : unsigned(31 downto 0) := (others => '0');
-	signal P_tmp_n : unsigned(46 downto 0) := (others => '0');
-	signal P_dB_c, P_dB_n : signed(7 downto 0) := (others => '0');
-	signal P_prev_c, P_prev_n : unsigned(31 downto 0) := (others => '0');
-	signal agc_out_c : signed(31 downto 0) := (others => '0');
-	signal agc_out_n : signed(31 downto 0) := (others => '0');
-	signal curr_sample_c, curr_sample_n : signed(15 downto 0) := (others => '0');
-	signal lut_delay_c, lut_delay_n : unsigned(0 downto 0) := (others => '0');
+	signal curr_sample_c, curr_sample_n : signed(15 downto 0) := (others => '0'); -- current input sample
+	signal P_in_c 						: unsigned(30 downto 0) := (others => '0'); -- power of input sample
+	signal P_in_n 						: unsigned(31 downto 0) := (others => '0');
+	signal P_tmp_c 						: unsigned(31 downto 0) := (others => '0'); -- weighted power of input sample
+	signal P_tmp_n 						: unsigned(46 downto 0) := (others => '0');
+	signal P_dB_c, P_dB_n 				: signed(7 downto 0) := (others => '0'); -- weighted power of input sample in decibel
+	signal P_prev_c, P_prev_n 			: unsigned(31 downto 0) := (others => '0'); -- power of output sample
+	signal lut_delay_c, lut_delay_n 	: unsigned(0 downto 0) := (others => '0'); -- one bit delay counter for LUT look-up time	
+	signal agc_out_c, agc_out_n			: signed(31 downto 0) := (others => '0'); -- attenuated sample
 	
-	type state_type is (HOLD, P_curr, P_weighted, P_dB, FETCH_GAIN, GAIN, SEND);
-	signal state_c, state_n : state_type := HOLD;
-	
+	type state_type is (HOLD, P_curr, P_weighted, P_dB, FETCH_GAIN, GAIN, SEND); -- states for FSM
+	signal state_c, state_n 			: state_type := HOLD;
 
 begin
 
+-- clock process
+----------------------------------------------------------------------------------
 clk_proc : process(clk, rstn) is
 begin
-
 	if rstn = '0' then
-		state_c <= HOLD;
-		P_in_c <= (others => '0');
-		P_tmp_c <= (others => '0');
-		P_dB_c <= (others => '0');
-		P_prev_c <= (others => '0');
-		agc_out_c <= (others => '0');
-		curr_sample_c <= (others => '0');
-		lut_delay_c <= (others => '0');
+		state_c 		<= HOLD;
+		P_in_c 			<= (others => '0');
+		P_tmp_c 		<= (others => '0');
+		P_dB_c 			<= (others => '0');
+		P_prev_c 		<= (others => '0');
+		agc_out_c 		<= (others => '0');
+		curr_sample_c 	<= (others => '0');
+		lut_delay_c 	<= (others => '0');
 	elsif rising_edge(clk) then
-		state_c <= state_n;
-		P_in_c <= P_in_n(30 downto 0);
-		P_tmp_c <= P_tmp_n(46 downto 15);
-		P_dB_c <= P_dB_n;
-		P_prev_c <= P_prev_n;
-		agc_out_c <= agc_out_n;
-		curr_sample_c <= curr_sample_n;
-		lut_delay_c <= lut_delay_n;
+		state_c 		<= state_n;
+		P_in_c 			<= P_in_n(30 downto 0);
+		P_tmp_c 		<= P_tmp_n(46 downto 15);
+		P_dB_c 			<= P_dB_n;
+		P_prev_c 		<= P_prev_n;
+		agc_out_c 		<= agc_out_n;
+		curr_sample_c 	<= curr_sample_n;
+		lut_delay_c 	<= lut_delay_n;
 	end if;
-	
 end process;
 
 
+-- FSM for AGC process
+----------------------------------------------------------------------------------
 power_proc : process(state_c, curr_sample_c, P_in_c, P_tmp_c, P_dB_c, P_prev_c, agc_out_c, i_sample, i_start, i_gain, lut_delay_c) is
 begin
-	--default
-	state_n <= state_c;
-	P_in_n <= resize(P_in_c, 32);
-	P_tmp_n <= P_tmp_c & "000000000000000";
-	P_dB_n <= P_dB_c;
-	curr_sample_n <= curr_sample_c;
-	P_prev_n <= P_prev_c;
-	agc_out_n <= agc_out_c;
-	o_sample <= std_logic_vector(agc_out_c(30 downto 15));
-	o_power <= std_logic_vector(P_dB_n);
-	o_gain_fetch <= '0';
-	lut_delay_n <= lut_delay_c;
+	--default assignments
+	state_n 		<= state_c;
+	P_in_n 			<= resize(P_in_c, 32);
+	P_tmp_n 		<= P_tmp_c & "000000000000000";
+	P_dB_n 			<= P_dB_c;
+	curr_sample_n 	<= curr_sample_c;
+	P_prev_n 		<= P_prev_c;
+	agc_out_n 		<= agc_out_c;
+	lut_delay_n 	<= lut_delay_c;
+	o_sample 		<= std_logic_vector(agc_out_c(30 downto 15)); -- output sample
+	o_power 		<= std_logic_vector(P_dB_n); -- output power to LUT
+	o_gain_fetch 	<= '0'; -- don't enable LUT
 	
 	case state_c is
 	
+		-- wait for start signal until latching in input sample
 		when HOLD =>
 			if i_start = '1' then
-				curr_sample_n <= signed(i_sample);
-				state_n <= P_curr;
+				curr_sample_n 	<= signed(i_sample);
+				state_n 		<= P_curr;
 			end if;
 		
+		-- calculate power of current sample
 		when P_curr =>
-			P_in_n <= unsigned(abs(signed(curr_sample_c)) * abs(signed(curr_sample_c)));
+			P_in_n 	<= unsigned(abs(signed(curr_sample_c)) * abs(signed(curr_sample_c)));
 			state_n <= P_weighted;
-			
+		
+		-- compare the power of the current sample against previous sample to determine increasing or decreasing power
+		-- then weigh the power of the current sample against previous sample
 		when P_weighted =>
 			if P_in_c > P_prev_c then
-				P_tmp_n <= ((32768 - alpha) * P_prev_c(30 downto 0)) + (alpha * P_in_c);
+				P_tmp_n <= ((32768 - alpha) * P_prev_c(30 downto 0)) + (alpha * P_in_c); -- increasing power
 			else
-				P_tmp_n <= ((32768 - beta) * P_prev_c(30 downto 0)) + (beta * P_in_c);
+				P_tmp_n <= ((32768 - beta) * P_prev_c(30 downto 0)) + (beta * P_in_c); -- decreasing power
 			end if;
 			state_n <= P_dB;
-			
+		
+		-- convert the weighted power of the current sample to decibel
 		when P_dB =>
 			if P_tmp_c > x"2133a19c6" then -- >99.5dB
 				P_dB_n <= to_signed(18, 8);
@@ -316,33 +312,33 @@ begin
 			end if;
 					
 			state_n <= FETCH_GAIN;
-			
+		
+		-- enable LUT and what for returned gain
 		when FETCH_GAIN =>
 			if lut_delay_c = 0 then
-				o_gain_fetch <= '1';
-				lut_delay_n <= lut_delay_c + 1;
-				state_n <= FETCH_GAIN;
+				o_gain_fetch 	<= '1'; -- enable LUT
+				lut_delay_n 	<= lut_delay_c + 1; -- increase delay counter
+				state_n 		<= FETCH_GAIN; -- stay in same state
 			else
-				state_n <= GAIN;
-				lut_delay_n <= (others => '0');
+				lut_delay_n 	<= (others => '0'); -- clear delay counter
+				state_n 		<= GAIN;
 			end if;
 			
-			
+		-- multiply current sample with the gain fetched from LUT
 		when GAIN =>
-			if P_dB_c > to_signed(-82,16) then -- optimize
-				agc_out_n <= signed(curr_sample_c) * signed(i_gain); 
+			if P_dB_c > to_signed(-82,16) then
+				agc_out_n <= signed(curr_sample_c) * signed(i_gain); -- multiply with gain from LUT
 			else
-				agc_out_n <= signed(curr_sample_c) * to_signed(32767, 16);
+				agc_out_n <= signed(curr_sample_c) * to_signed(32767, 16); -- multiply with default gain => no attenuation
 			end if;
-	
 			state_n <= SEND;
 		
+		-- calculate power of output sample for comparison and weighting with next input sample
 		when SEND =>
-			P_prev_n <= unsigned(abs(signed(agc_out_c(30 downto 15))) * abs(signed(agc_out_c(30 downto 15))));
-			state_n <= HOLD;
+			P_prev_n 	<= unsigned(abs(signed(agc_out_c(30 downto 15))) * abs(signed(agc_out_c(30 downto 15))));
+			state_n 	<= HOLD;
 			
 	end case;
-	
 end process;
 
 end Behavioral;

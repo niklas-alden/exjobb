@@ -20132,9 +20132,6 @@ BEGIN
 			wait for i_bit_clk_period*216;
 		end loop;
 
-		
-
-
 		wait;
    end process;
 

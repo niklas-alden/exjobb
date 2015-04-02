@@ -9,7 +9,7 @@ ofile = open('gain_lut_py.vhd', 'w')
 
 for f_line in fix_lines:
     ofile.write(f_line)
-    if 'case i_dB' in f_line:
+    if 'case dB_max_c is' in f_line:
         n = len(g_lines);
         for line in reversed(g_lines):
             g = int(float(line) * (2**15))
@@ -19,7 +19,7 @@ for f_line in fix_lines:
             gain = str(hex(g)[2:])
             if gain == '8000':
                 gain = '7fff'
-            ofile.write('            when x"' + dB + '" => o_gain <= x"' + gain + '"; -- ' + str(n) + 'dB' + '\n')
+            ofile.write('        when x"' + dB + '" => gain_n <= x"' + gain + '"; -- ' + str(n) + 'dB' + '\n')
             n -= 1
     
 gain_file.close()

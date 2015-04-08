@@ -39,7 +39,9 @@ architecture Behavioral of agc is
 	signal lut_delay_c, lut_delay_n 	: unsigned(0 downto 0) := (others => '0'); -- one bit delay counter for LUT look-up time	
 	signal agc_out_c, agc_out_n			: signed(31 downto 0) := (others => '0'); -- attenuated sample
 	
-	type state_type is (HOLD, P_curr, P_weighted, P_dB, FETCH_GAIN, GAIN, SEND); -- states for FSM
+	signal P_w0_c, P_w0_n, P_w1_c, P_w1_n : unsigned(46 downto 0) := (others => '0'); -- temporary registers for weightening multiplications
+	
+	type state_type is (HOLD, P_curr, P_weigh_mult, P_weigh_add, P_dB, FETCH_GAIN, GAIN, SEND); -- states for FSM
 	signal state_c, state_n 			: state_type := HOLD;
 
 begin
@@ -51,6 +53,8 @@ begin
 	if rstn = '0' then
 		state_c 		<= HOLD;
 		P_in_c 			<= (others => '0');
+		P_w0_c			<= (others => '0');
+		P_w1_c			<= (others => '0');
 		P_tmp_c 		<= (others => '0');
 		P_dB_c 			<= (others => '0');
 		P_prev_c 		<= (others => '0');
@@ -60,6 +64,8 @@ begin
 	elsif rising_edge(clk) then
 		state_c 		<= state_n;
 		P_in_c 			<= P_in_n(30 downto 0);
+		P_w0_c			<= P_w0_n;
+		P_w1_c			<= P_w1_n;
 		P_tmp_c 		<= P_tmp_n(46 downto 15);
 		P_dB_c 			<= P_dB_n;
 		P_prev_c 		<= P_prev_n;
@@ -72,11 +78,13 @@ end process;
 
 -- FSM for AGC process
 ----------------------------------------------------------------------------------
-power_proc : process(state_c, curr_sample_c, P_in_c, P_tmp_c, P_dB_c, P_prev_c, agc_out_c, i_sample, i_start, i_gain, lut_delay_c) is
+power_proc : process(state_c, curr_sample_c, P_in_c, P_w0_c, P_w1_c, P_tmp_c, P_dB_c, P_prev_c, agc_out_c, i_sample, i_start, i_gain, lut_delay_c) is
 begin
 	--default assignments
 	state_n 		<= state_c;
 	P_in_n 			<= resize(P_in_c, 32);
+	P_w0_n			<= P_w0_c;
+	P_w1_n			<= P_w1_c;
 	P_tmp_n 		<= P_tmp_c & "000000000000000";
 	P_dB_n 			<= P_dB_c;
 	curr_sample_n 	<= curr_sample_c;
@@ -99,19 +107,26 @@ begin
 		-- calculate power of current sample
 		when P_curr =>
 			P_in_n 	<= unsigned(abs(signed(curr_sample_c)) * abs(signed(curr_sample_c)));
-			state_n <= P_weighted;
+			state_n <= P_weigh_mult;
 		
 		-- compare the power of the current sample against previous sample to determine increasing or decreasing power
 		-- then weigh the power of the current sample against previous sample
-		when P_weighted =>
-			if P_in_c > P_prev_c then
-				P_tmp_n <= ((32768 - alpha) * P_prev_c(30 downto 0)) + (alpha * P_in_c); -- increasing power
-			else
-				P_tmp_n <= ((32768 - beta) * P_prev_c(30 downto 0)) + (beta * P_in_c); -- decreasing power
+		when P_weigh_mult =>
+			if P_in_c > P_prev_c then 							-- increasing power
+				P_w0_n 	<= (32768 - alpha) * P_prev_c(30 downto 0);
+				P_w1_n 	<= alpha * P_in_c;
+			else 												-- decreasing power
+				P_w0_n 	<= (32768 - beta) * P_prev_c(30 downto 0);
+				P_w1_n 	<= beta * P_in_c;
 			end if;
-			state_n <= P_dB;
+			state_n 	<= P_weigh_add;
+			
+		-- add the multiplied temporary values to get the samples weighted power
+		when P_weigh_add =>
+			P_tmp_n <= P_w0_c + P_w1_c;
+			state_n	<= P_dB;
 		
-		-- convert the weighted power of the current sample to decibel
+		-- convert the weighted power to decibel
 		when P_dB =>
 			if P_tmp_c > x"2133a19c6" then -- >99.5dB
 				P_dB_n <= to_signed(18, 8);

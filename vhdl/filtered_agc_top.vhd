@@ -26,8 +26,8 @@ entity filtered_agc_top is
            rstn : in  STD_LOGIC;
            i_sample : in  STD_LOGIC_VECTOR (15 downto 0);
 		   i_start : in std_logic;
-           o_sample : out  STD_LOGIC_VECTOR (15 downto 0);
-		   o_done : out std_logic
+           o_sample : out  STD_LOGIC_VECTOR (15 downto 0)--;
+		   --o_done : out std_logic
 		   );
 end filtered_agc_top;
 
@@ -61,8 +61,8 @@ architecture Behavioral of filtered_agc_top is
 				i_start : in std_logic;
 				i_gain : in  STD_LOGIC_VECTOR (15 downto 0);
 				o_power : out  STD_LOGIC_VECTOR (7 downto 0);
-				o_sample : out  STD_LOGIC_VECTOR (15 downto 0);
-				o_done : out std_logic
+				o_sample : out  STD_LOGIC_VECTOR (15 downto 0)--;
+				--o_done : out std_logic
 				);
 	end component;
 
@@ -110,8 +110,8 @@ begin
 			i_start => done_eq_agc,
 			i_gain => gain_lut_agc,
 			o_power => P_agc_lut,
-			o_sample => o_sample,
-			o_done => o_done
+			o_sample => o_sample--,
+			--o_done => o_done
 			);
 			
 	gain_lut_inst : gain_lut

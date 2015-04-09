@@ -63,7 +63,7 @@ ARCHITECTURE behavior OF tb_top IS
    signal o_RSTN : std_logic;
 
    -- Clock period definitions
-   constant clk_period : time := 30.3 ns; -- 33MHz
+   constant clk_period : time := 10 ns; -- 100MHz
    constant i_BIT_CLK_period : time := 81.38 ns; -- 12.288 MHz
    
    constant len : integer range 0 to 65535 := 20000;

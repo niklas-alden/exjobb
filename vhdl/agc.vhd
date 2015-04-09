@@ -26,18 +26,18 @@ end agc;
 architecture Behavioral of agc is
 
 	-- time parameters
-	constant alpha 	: unsigned(15 downto 0) := to_unsigned(164, 16); -- attack time
-	constant beta 	: unsigned(15 downto 0) := to_unsigned(983, 16); -- release time
+	constant alpha 	: unsigned(15 downto 0) := to_unsigned(164, 16); 				-- attack time
+	constant beta 	: unsigned(15 downto 0) := to_unsigned(983, 16); 				-- release time
 	
-	signal curr_sample_c, curr_sample_n : signed(15 downto 0) := (others => '0'); -- current input sample
+	signal curr_sample_c, curr_sample_n : signed(15 downto 0) 	:= (others => '0'); -- current input sample
 	signal P_in_c 						: unsigned(30 downto 0) := (others => '0'); -- power of input sample
 	signal P_in_n 						: unsigned(31 downto 0) := (others => '0');
 	signal P_tmp_c 						: unsigned(31 downto 0) := (others => '0'); -- weighted power of input sample
 	signal P_tmp_n 						: unsigned(46 downto 0) := (others => '0');
-	signal P_dB_c, P_dB_n 				: signed(7 downto 0) := (others => '0'); -- weighted power of input sample in decibel
+	signal P_dB_c, P_dB_n 				: signed(7 downto 0) 	:= (others => '0'); -- weighted power of input sample in decibel
 	signal P_prev_c, P_prev_n 			: unsigned(31 downto 0) := (others => '0'); -- power of output sample
-	signal lut_delay_c, lut_delay_n 	: unsigned(0 downto 0) := (others => '0'); -- one bit delay counter for LUT look-up time	
-	signal agc_out_c, agc_out_n			: signed(31 downto 0) := (others => '0'); -- attenuated sample
+	signal lut_delay_c, lut_delay_n 	: unsigned(0 downto 0) 	:= (others => '0'); -- one bit delay counter for LUT look-up time	
+	signal agc_out_c, agc_out_n			: signed(31 downto 0) 	:= (others => '0'); -- attenuated sample
 	
 	signal P_w0_c, P_w0_n, P_w1_c, P_w1_n : unsigned(46 downto 0) := (others => '0'); -- temporary registers for weightening multiplications
 	
@@ -91,12 +91,12 @@ begin
 	P_prev_n 		<= P_prev_c;
 	agc_out_n 		<= agc_out_c;
 	lut_delay_n 	<= lut_delay_c;
-	o_sample 		<= std_logic_vector(agc_out_c(30 downto 15)); -- output sample
-	o_power 		<= std_logic_vector(P_dB_n); -- output power to LUT
-	o_gain_fetch 	<= '0'; -- don't enable LUT
+	o_sample 		<= std_logic_vector(agc_out_c(30 downto 15)); 	-- output sample
+	o_power 		<= std_logic_vector(P_dB_n); 					-- output power to LUT
+	o_gain_fetch 	<= '0'; 										-- don't enable LUT
 	
 	case state_c is
-	
+
 		-- wait for start signal until latching in input sample
 		when HOLD =>
 			if i_start = '1' then
@@ -331,9 +331,9 @@ begin
 		-- enable LUT and what for returned gain
 		when FETCH_GAIN =>
 			if lut_delay_c = 0 then
-				o_gain_fetch 	<= '1'; -- enable LUT
+				o_gain_fetch 	<= '1'; 			-- enable LUT
 				lut_delay_n 	<= lut_delay_c + 1; -- increase delay counter
-				state_n 		<= FETCH_GAIN; -- stay in same state
+				state_n 		<= FETCH_GAIN; 		-- stay in same state
 			else
 				lut_delay_n 	<= (others => '0'); -- clear delay counter
 				state_n 		<= GAIN;
@@ -342,9 +342,9 @@ begin
 		-- multiply current sample with the gain fetched from LUT
 		when GAIN =>
 			if P_dB_c > to_signed(-82,16) then
-				agc_out_n <= signed(curr_sample_c) * signed(i_gain); -- multiply with gain from LUT
+				agc_out_n <= signed(curr_sample_c) * signed(i_gain); 		-- multiply with gain from LUT
 			else
-				agc_out_n <= signed(curr_sample_c) * to_signed(32767, 16); -- multiply with default gain => no attenuation
+				agc_out_n <= signed(curr_sample_c) * to_signed(32767, 16); 	-- multiply with default gain => no attenuation
 			end if;
 			state_n <= SEND;
 		

@@ -29,17 +29,17 @@ begin
 		if rstn = '0' then
 			sync0_c <= '0';
 			sync1_c <= '0';
-			Q0_c <= '0';
-			Q1_c <= '0';
-			Q2_c <= '0';
-			Q3_c <= '0';
+			Q0_c 	<= '0';
+			Q1_c 	<= '0';
+			Q2_c 	<= '0';
+			Q3_c 	<= '0';
 		elsif rising_edge(clk) then
 			sync0_c <= sync0_n;
 			sync1_c <= sync1_n;
-			Q0_c <= Q0_n;
-			Q1_c <= Q1_n;
-			Q2_c <= Q2_n;
-			Q3_c <= Q3_n;
+			Q0_c 	<= Q0_n;
+			Q1_c 	<= Q1_n;
+			Q2_c 	<= Q2_n;
+			Q3_c 	<= Q3_n;
 		end if;
 	end process;
 	
@@ -47,10 +47,10 @@ begin
 	begin
 		sync0_n <= i_bit_clk;
 		sync1_n <= sync0_c;
-		Q0_n <= sync1_c;
-		Q1_n <= Q0_c;
-		Q2_n <= Q1_c;
-		Q3_n <= Q2_c;
+		Q0_n 	<= sync1_c;
+		Q1_n 	<= Q0_c;
+		Q2_n 	<= Q1_c;
+		Q3_n 	<= Q2_c;
 	end process;
 	
 	sync_fall_proc : process(Q0_c, Q1_c, Q2_c, Q3_c) is

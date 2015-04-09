@@ -24,16 +24,16 @@ end ac97_comb;
 architecture Behavioral of ac97_comb is
 
 	signal cmd_c, cmd_n : std_logic_vector(23 downto 0) := (others => '0'); -- address and data
-	signal attenuation 	: std_logic_vector(4 downto 0) := (others => '0'); -- attenuation for headphone output
+	signal attenuation 	: std_logic_vector(4 downto 0) := (others => '0'); 	-- attenuation for headphone output
 
 	type state_type is (HP_VOL, MIC_VOL, OUT_VOL, REC_SEL, REC_GAIN, DAC_RATE, ADC_RATE, MIC_2CH); -- states for FSM
 	signal state_c, state_n : state_type := HP_VOL;
 	
 begin
 
-	o_cmd_addr 	<= cmd_c(23 downto 16); -- address output
-	o_cmd_data 	<= cmd_c(15 downto 0); -- data output
-	attenuation <= std_logic_vector(31 - unsigned(i_volume)); -- turn volume into attenuation
+	o_cmd_addr 	<= cmd_c(23 downto 16); 						-- address output
+	o_cmd_data 	<= cmd_c(15 downto 0); 							-- data output
+	attenuation <= std_logic_vector(31 - unsigned(i_volume)); 	-- turn volume into attenuation
 
 
 -- clock process

@@ -28,14 +28,14 @@ architecture Behavioral of high_pass_filter is
 	constant b_1 : signed(15 downto 0) := to_signed(-504,16);
 	constant a_1 : signed(15 downto 0) := to_signed(-496, 16);
 	
-	signal x_c, x_n 			: signed(15 downto 0) := (others => '0'); -- current input sample
-	signal x_prev_c, x_prev_n 	: signed(15 downto 0) := (others => '0'); -- previous input sample
-	signal y_c, y_n 			: signed(31 downto 0) := (others => '0'); -- current output sample
-	signal y_prev 				: signed(15 downto 0) := (others => '0'); -- previous output sample
+	signal x_c, x_n 			: signed(15 downto 0) := (others => '0'); 	-- current input sample
+	signal x_prev_c, x_prev_n 	: signed(15 downto 0) := (others => '0'); 	-- previous input sample
+	signal y_c, y_n 			: signed(31 downto 0) := (others => '0'); 	-- current output sample
+	signal y_prev 				: signed(15 downto 0) := (others => '0'); 	-- previous output sample
 	
 	signal t0_c, t0_n, t1_c, t1_n, t2_c, t2_n : signed(31 downto 0) := (others => '0'); -- temporary registers for filter multiplications
 	
-	type state_type is (HOLD, MULT, ADD, SEND); -- states for FSM    
+	type state_type is (HOLD, MULT, ADD, SEND); 							-- states for FSM    
 	signal state_c, state_n 	: state_type := HOLD;
 	
 begin

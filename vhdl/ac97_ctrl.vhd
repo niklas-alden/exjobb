@@ -168,11 +168,11 @@ begin
 	if rising_edge(i_falling_bit_clk) then
 	
 		-- Slot 3 : left channel data from ADC
-		if (bit_cnt_c >= 56) and (bit_cnt_c <= 75) then 	-- bit count 56 to 75
+		if (bit_cnt_c >= 57) and (bit_cnt_c <= 76) then 	-- bit count 56 to 75
 			left_in_data <= left_in_data(18 downto 0) & i_ac97_sdata_in; 
 
 		-- Slot 4 : right channel data from ADC
-		elsif (bit_cnt_c >= 76) and (bit_cnt_c <= 95) then 	-- bit count 76 to 95
+		elsif (bit_cnt_c >= 77) and (bit_cnt_c <= 96) then 	-- bit count 76 to 95
 			right_in_data <= right_in_data(18 downto 0) & i_ac97_sdata_in;
 			
 		end if;

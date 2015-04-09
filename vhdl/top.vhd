@@ -18,7 +18,8 @@ entity top is
 			o_SDATA_out : out std_logic;
 			o_SYNC 		: out std_logic;
 			o_RSTN 		: out std_logic;
-			i_BIT_CLK 	: in std_logic
+			i_BIT_CLK 	: in std_logic--;
+--		   led_test : out std_logic_vector(15 downto 0)
 			);
 end top;
 
@@ -113,6 +114,8 @@ architecture Behavioral of top is
 -- AGC -> AC97
 	signal L_sample_agc_ac97, R_sample_agc_ac97 : std_logic_vector(15 downto 0);
 	
+-- loopback
+	signal L_loop, R_loop : std_logic_vector(15 downto 0);
 	
 begin
 
@@ -135,10 +138,10 @@ begin
 			o_ac97_rstn 		=> o_RSTN,
 			i_bit_clk 			=> i_BIT_CLK,
 			i_falling_bit_clk	=> falling_bit_clk_ac97,
-			i_L_from_AGC 		=> L_sample_agc_ac97,
-			i_R_from_AGC 		=> R_sample_agc_ac97,
-			o_L_to_AGC 			=> L_sample_ac97_hp,
-			o_R_to_AGC 			=> R_sample_ac97_hp,
+			i_L_from_AGC 		=> L_sample_agc_ac97,--L_loop,--
+			i_R_from_AGC 		=> R_sample_agc_ac97,--R_loop,--
+			o_L_to_AGC 			=> L_sample_ac97_hp,--L_loop,--led_test,--
+			o_R_to_AGC 			=> R_sample_ac97_hp,--R_loop,--led_test,--
 			o_L_AGC_start 		=> L_start_ac97_hp,
 			o_R_AGC_start 		=> R_start_ac97_hp
 			);

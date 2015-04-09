@@ -24,7 +24,7 @@ end ac97_comb;
 architecture Behavioral of ac97_comb is
 
 	signal cmd_c, cmd_n : std_logic_vector(23 downto 0) := (others => '0'); -- address and data
-	signal attenuation 	: std_logic_vector(4 downto 0) := (others => '0'); 	-- attenuation for headphone output
+	signal attenuation 	: std_logic_vector(4 downto 0) 	:= (others => '0'); -- attenuation for headphone output
 
 	type state_type is (HP_VOL, MIC_VOL, OUT_VOL, REC_SEL, REC_GAIN, DAC_RATE, ADC_RATE, MIC_2CH); -- states for FSM
 	signal state_c, state_n : state_type := HP_VOL;
@@ -66,19 +66,23 @@ begin
 		-- reg 0x0E MICROPHONE VOLUME (TO MIXER), PRE AMP GAIN
 		when MIC_VOL =>
 --			cmd_n 	<= x"0E_0008"; -- MIC volume = 0dB, no MIC GAIN
---			cmd_n 	<= x"0E_8048"; -- MIC volume = 0dB, 20dB MIC GAIN, MUTED to mixer
-			cmd_n 	<= x"0E_8008"; -- MIC volume = 0dB, no MIC GAIN, MUTED to mixer
+			cmd_n 	<= x"0E_8040"; -- MIC volume = +12dB, 10/20/30dB MIC GAIN, MUTED to mixer
+--			cmd_n 	<= x"0E_8048"; -- MIC volume = 0dB, 10/20/30dB MIC GAIN, MUTED to mixer
+--			cmd_n 	<= x"0E_8000"; -- MIC volume = +12dB, no MIC GAIN, MUTED to mixer
+--			cmd_n 	<= x"0E_8008"; -- MIC volume = 0dB, no MIC GAIN, MUTED to mixer
 			state_n <= OUT_VOL;
 		
 		-- reg 0x18 PCM-OUT VOLUME (FROM DAC)
 		when OUT_VOL =>
-			cmd_n 	<= x"18_0808"; -- PCM out volume = 0dB
+--			cmd_n 	<= x"18_0808"; -- PCM out volume = 0dB
+			cmd_n 	<= x"18_0000"; -- PCM out volume = +12dB
 --			cmd_n 	<= x"18_1F1F"; -- PCM out volume = -34.5dB
 			state_n <= REC_SEL;
 		
 		-- reg 0x1A RECORD SELECT 
 		when REC_SEL => 
 			cmd_n 	<= x"1A_0000"; -- record select = MIC
+--			cmd_n 	<= x"1A_0404"; -- record select = Line in
 			state_n <= REC_GAIN;
 		
 		-- reg 0x1C RECORD GAIN 
@@ -101,7 +105,11 @@ begin
 		
 		-- reg 0x76 MISCELLANEOUS CONTROL BIT REGISTER
 		when MIC_2CH =>
-			cmd_n 	<= x"76_0240"; -- DAC to MIXER muted, stereo microphone input, MIC GAIN = 20dB if enabled
+			cmd_n 	<= x"76_0241"; -- DAC to MIXER muted, stereo microphone input, MIC GAIN = 10dB if enabled
+--			cmd_n 	<= x"76_0240"; -- DAC to MIXER muted, stereo microphone input, MIC GAIN = 20dB if enabled
+--			cmd_n 	<= x"76_0242"; -- DAC to MIXER muted, stereo microphone input, MIC GAIN = 30dB if enabled
+--			cmd_n 	<= x"76_0040"; -- stereo microphone input, MIC GAIN = 20dB if enabled
+--			cmd_n 	<= x"76_0000"; -- no stereo microphone input, MIC GAIN = 20dB if enabled
 			state_n <= HP_VOL;
 		
 		when others =>

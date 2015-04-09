@@ -20116,7 +20116,7 @@ BEGIN
 		rstn <= '1';
 		i_volume <= (others => '1');
 
-	wait for i_bit_clk_period*55;
+	wait for i_bit_clk_period*56;
 		
 		for j in 42 to len-1 loop
 			--for k in 0 to 1 loop

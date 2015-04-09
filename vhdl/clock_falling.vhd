@@ -2,24 +2,23 @@
 -- Engineer: 		Niklas Aldén
 -- 
 -- Create Date:    	15:28:00 03/30/2015 
--- Module Name:    	clocks_rise_fall - Behavioral 
+-- Module Name:    	clock_falling - Behavioral 
 -- Project Name: 	Hardware implementation of AGC for active hearing protectors
 -- Description: 	Master Thesis
 --
 ----------------------------------------------------------------------------------
 library ieee;
-use ieee.std_logic_1164.ALL;
+use ieee.std_logic_1164.all;
 
-entity clocks_rise_fall is
-    Port ( clk 			: in std_logic; -- clock, 100MHz
-           rstn 		: in std_logic; -- reset, active low
-           i_bit_clk 	: in std_logic; -- codec clock, 12.288MHz
-           o_rising_clk : out std_logic; -- output clock, sync on bit_clock rising edge
-           o_falling_clk : out std_logic -- output clock, sync on bit_clock falling edge
+entity clock_falling is
+    Port ( 	clk 			: in std_logic; -- main clock, 100MHz
+			rstn 			: in std_logic; -- reset, active low
+			i_bit_clk 		: in std_logic; -- codec clock, 12.288MHz
+			o_falling_clk 	: out std_logic -- output clock, sync on bit_clock falling edge
 		   );
-end clocks_rise_fall;
+end clock_falling;
 
-architecture Behavioral of clocks_rise_fall is
+architecture Behavioral of clock_falling is
 
 	signal sync0_c, sync0_n, sync1_c, sync1_n, Q0_c, Q0_n, Q1_c, Q1_n, Q2_c, Q2_n, Q3_c, Q3_n : std_logic := '0';
 	
@@ -54,19 +53,13 @@ begin
 		Q3_n <= Q2_c;
 	end process;
 	
-	rise_fall_proc : process(Q0_c, Q1_c, Q2_c, Q3_c) is
+	sync_fall_proc : process(Q0_c, Q1_c, Q2_c, Q3_c) is
 	begin
-		if Q0_c = '0' and Q1_c = '0' and Q2_c = '0' and Q3_c = '1' then
-			o_rising_clk <= '1';
-			o_falling_clk <= '0';
-		elsif Q0_c = '1' and Q1_c = '1' and Q2_c = '1' and Q3_c = '0' then
-			o_rising_clk <= '0';
+		if Q0_c = '1' and Q1_c = '1' and Q2_c = '1' and Q3_c = '0' then
 			o_falling_clk <= '1';
 		else
-			o_rising_clk <= '0';
 			o_falling_clk <= '0';
 		end if;
-
 	end process;
 
 end Behavioral;

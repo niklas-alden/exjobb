@@ -15,10 +15,10 @@ while n > 0:
     d1 = str(int(n-ref+0.5))
     d2 = str(n)
     if first:
-        ofile.write('if P_tmp_c(' + max_bit + ' downto 0) > x"' + h + '" then -- >' + d2 + 'dB\n\tP_dB_n <= to_signed(' + d1 + ', 8);\n')
+        ofile.write('if P_weigh_c(' + max_bit + ' downto 0) > x"' + h + '" then -- >' + d2 + 'dB\n\tP_dB_n <= to_signed(' + d1 + ', 8);\n')
         first = 0
     else:
-        ofile.write('elsif P_tmp_c(' + max_bit + ' downto 0) > x"' + h + '" then -- >' + d2 + 'dB\n\tP_dB_n <= to_signed(' + d1 + ', 8);\n')
+        ofile.write('elsif P_weigh_c(' + max_bit + ' downto 0) > x"' + h + '" then -- >' + d2 + 'dB\n\tP_dB_n <= to_signed(' + d1 + ', 8);\n')
     n -= 1
 
 ofile.close()

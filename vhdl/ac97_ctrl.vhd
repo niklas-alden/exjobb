@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------------
--- Engineer: 		Niklas Aldén
+-- Engineer: 		Niklas Aldn
 -- 
 -- Create Date:    	12:15:31 03/20/2015 
 -- Module Name:    	ac97_ctrl - Behavioral 
@@ -60,7 +60,7 @@ begin
 			bit_cnt_c 	<= (others => '0');
 			reset_cnt 	<= 0;
 			o_ac97_rstn <= '0';
-		elsif reset_cnt = 100 then 	-- 100 ~ 1µs @ 100MHz, COLD RESET
+		elsif reset_cnt = 100 then 	-- 100 ~ 1s @ 100MHz, COLD RESET
 			reset_cnt 	<= 0;
 			o_ac97_rstn <= '1';
 		end if;

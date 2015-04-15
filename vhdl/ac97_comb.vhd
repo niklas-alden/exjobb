@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------------
--- Engineer: 		Niklas Aldén
+-- Engineer: 		Niklas Aldn
 -- 
 -- Create Date:    	09:54:51 03/20/2015 
 -- Module Name:    	ac97_comb - Behavioral 
@@ -65,17 +65,14 @@ begin
 		
 		-- reg 0x0E MICROPHONE VOLUME (TO MIXER), PRE AMP GAIN
 		when MIC_VOL =>
---			cmd_n 	<= x"0E_0008"; -- MIC volume = 0dB, no MIC GAIN
-			cmd_n 	<= x"0E_8040"; -- MIC volume = +12dB, 10/20/30dB MIC GAIN, MUTED to mixer
---			cmd_n 	<= x"0E_8048"; -- MIC volume = 0dB, 10/20/30dB MIC GAIN, MUTED to mixer
---			cmd_n 	<= x"0E_8000"; -- MIC volume = +12dB, no MIC GAIN, MUTED to mixer
+			cmd_n 	<= x"0E_8048"; -- MIC volume = 0dB, 10/20/30dB MIC GAIN, MUTED to mixer
 --			cmd_n 	<= x"0E_8008"; -- MIC volume = 0dB, no MIC GAIN, MUTED to mixer
 			state_n <= OUT_VOL;
 		
 		-- reg 0x18 PCM-OUT VOLUME (FROM DAC)
 		when OUT_VOL =>
---			cmd_n 	<= x"18_0808"; -- PCM out volume = 0dB
-			cmd_n 	<= x"18_0000"; -- PCM out volume = +12dB
+			cmd_n 	<= x"18_0808"; -- PCM out volume = 0dB
+--			cmd_n 	<= x"18_0000"; -- PCM out volume = +12dB
 --			cmd_n 	<= x"18_1F1F"; -- PCM out volume = -34.5dB
 			state_n <= REC_SEL;
 		
@@ -105,8 +102,8 @@ begin
 		
 		-- reg 0x76 MISCELLANEOUS CONTROL BIT REGISTER
 		when MIC_2CH =>
-			cmd_n 	<= x"76_0241"; -- DAC to MIXER muted, stereo microphone input, MIC GAIN = 10dB if enabled
---			cmd_n 	<= x"76_0240"; -- DAC to MIXER muted, stereo microphone input, MIC GAIN = 20dB if enabled
+--			cmd_n 	<= x"76_0241"; -- DAC to MIXER muted, stereo microphone input, MIC GAIN = 10dB if enabled
+			cmd_n 	<= x"76_0A40"; -- Digital audio && DAC to MIXER muted, stereo microphone input, MIC GAIN = 20dB if enabled
 --			cmd_n 	<= x"76_0242"; -- DAC to MIXER muted, stereo microphone input, MIC GAIN = 30dB if enabled
 --			cmd_n 	<= x"76_0040"; -- stereo microphone input, MIC GAIN = 20dB if enabled
 --			cmd_n 	<= x"76_0000"; -- no stereo microphone input, MIC GAIN = 20dB if enabled

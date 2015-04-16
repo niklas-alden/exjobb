@@ -1,11 +1,11 @@
 def tohex(val, nbits):
     return hex((val + (1 << nbits)) % (1 << nbits))
 
-gain_file = open('matlab_gain_lut.txt', 'r')
+gain_file = open('matlab_gain_lut_7.txt', 'r')
 g_lines = gain_file.readlines()
 fix_file = open('gain_lut_template.vhd', 'r')
 fix_lines = fix_file.readlines()
-ofile = open('gain_lut_py.vhd', 'w')
+ofile = open('gain_lut_py_7.vhd', 'w')
 
 for f_line in fix_lines:
     ofile.write(f_line)

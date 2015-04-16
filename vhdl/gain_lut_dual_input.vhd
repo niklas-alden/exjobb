@@ -61,6 +61,8 @@ begin
 
 	case dB_max_c is -- set corresponding gain
 			
+-- GAIN LUT 5
+-------------------------------------------------
 		when x"12" => gain_n <= x"68b0"; -- 100dB
 		when x"11" => gain_n <= x"699a"; -- 99dB
 		when x"10" => gain_n <= x"6a81"; -- 98dB
@@ -100,6 +102,88 @@ begin
 		when x"ee" => gain_n <= x"7f93"; -- 64dB
 		when x"ed" => gain_n <= x"7fc0"; -- 63dB
 		when x"ec" => gain_n <= x"7fe2"; -- 62dB
+
+-- GAIN LUT 6
+-------------------------------------------------
+--		when x"12" => gain_n <= x"207"; -- 100dB
+--        when x"11" => gain_n <= x"28d"; -- 99dB
+--        when x"10" => gain_n <= x"337"; -- 98dB
+--        when x"0f" => gain_n <= x"40c"; -- 97dB
+--        when x"0e" => gain_n <= x"518"; -- 96dB
+--        when x"0d" => gain_n <= x"66a"; -- 95dB
+--        when x"0c" => gain_n <= x"813"; -- 94dB
+--        when x"0b" => gain_n <= x"a2a"; -- 93dB
+--        when x"0a" => gain_n <= x"ccc"; -- 92dB
+--        when x"09" => gain_n <= x"101d"; -- 91dB
+--        when x"08" => gain_n <= x"1449"; -- 90dB
+--        when x"07" => gain_n <= x"198a"; -- 89dB
+--        when x"06" => gain_n <= x"2026"; -- 88dB
+--        when x"05" => gain_n <= x"287a"; -- 87dB
+--        when x"04" => gain_n <= x"32f5"; -- 86dB
+--        when x"03" => gain_n <= x"4026"; -- 85dB
+--        when x"02" => gain_n <= x"50c3"; -- 84dB
+--        when x"01" => gain_n <= x"65ac"; -- 83dB
+
+-- GAIN LUT 7
+-------------------------------------------------
+--		when x"12" => gain_n <= x"2878"; -- 100dB
+--        when x"11" => gain_n <= x"2957"; -- 99dB
+--        when x"10" => gain_n <= x"2a40"; -- 98dB
+--        when x"0f" => gain_n <= x"2b31"; -- 97dB
+--        when x"0e" => gain_n <= x"2c2a"; -- 96dB
+--        when x"0d" => gain_n <= x"2d2c"; -- 95dB
+--        when x"0c" => gain_n <= x"2e36"; -- 94dB
+--        when x"0b" => gain_n <= x"2f48"; -- 93dB
+--        when x"0a" => gain_n <= x"3063"; -- 92dB
+--        when x"09" => gain_n <= x"3186"; -- 91dB
+--        when x"08" => gain_n <= x"32b0"; -- 90dB
+--        when x"07" => gain_n <= x"33e3"; -- 89dB
+--        when x"06" => gain_n <= x"351e"; -- 88dB
+--        when x"05" => gain_n <= x"3660"; -- 87dB
+--        when x"04" => gain_n <= x"37aa"; -- 86dB
+--        when x"03" => gain_n <= x"38fb"; -- 85dB
+--        when x"02" => gain_n <= x"3a54"; -- 84dB
+--        when x"01" => gain_n <= x"3bb4"; -- 83dB
+--        when x"00" => gain_n <= x"3d1c"; -- 82dB
+--        when x"ff" => gain_n <= x"3e8a"; -- 81dB
+--        when x"fe" => gain_n <= x"3fff"; -- 80dB
+--        when x"fd" => gain_n <= x"417c"; -- 79dB
+--        when x"fc" => gain_n <= x"42ff"; -- 78dB
+--        when x"fb" => gain_n <= x"4488"; -- 77dB
+--        when x"fa" => gain_n <= x"4618"; -- 76dB
+--        when x"f9" => gain_n <= x"47ae"; -- 75dB
+--        when x"f8" => gain_n <= x"4949"; -- 74dB
+--        when x"f7" => gain_n <= x"4aeb"; -- 73dB
+--        when x"f6" => gain_n <= x"4c92"; -- 72dB
+--        when x"f5" => gain_n <= x"4e3f"; -- 71dB
+--        when x"f4" => gain_n <= x"4ff1"; -- 70dB
+--        when x"f3" => gain_n <= x"51a8"; -- 69dB
+--        when x"f2" => gain_n <= x"5363"; -- 68dB
+--        when x"f1" => gain_n <= x"5523"; -- 67dB
+--        when x"f0" => gain_n <= x"56e7"; -- 66dB
+--        when x"ef" => gain_n <= x"58ae"; -- 65dB
+--        when x"ee" => gain_n <= x"5a7a"; -- 64dB
+--        when x"ed" => gain_n <= x"5c48"; -- 63dB
+--        when x"ec" => gain_n <= x"5e19"; -- 62dB
+--        when x"eb" => gain_n <= x"5fed"; -- 61dB
+--        when x"ea" => gain_n <= x"61c3"; -- 60dB
+--        when x"e9" => gain_n <= x"639a"; -- 59dB
+--        when x"e8" => gain_n <= x"6572"; -- 58dB
+--        when x"e7" => gain_n <= x"674b"; -- 57dB
+--        when x"e6" => gain_n <= x"6924"; -- 56dB
+--        when x"e5" => gain_n <= x"6afd"; -- 55dB
+--        when x"e4" => gain_n <= x"6cd4"; -- 54dB
+--        when x"e3" => gain_n <= x"6ea9"; -- 53dB
+--        when x"e2" => gain_n <= x"707d"; -- 52dB
+--        when x"e1" => gain_n <= x"724c"; -- 51dB
+--        when x"e0" => gain_n <= x"7418"; -- 50dB
+--        when x"df" => gain_n <= x"75df"; -- 49dB
+--        when x"de" => gain_n <= x"779f"; -- 48dB
+--        when x"dd" => gain_n <= x"7959"; -- 47dB
+--        when x"dc" => gain_n <= x"7b0a"; -- 46dB
+--        when x"db" => gain_n <= x"7cb2"; -- 45dB
+--        when x"da" => gain_n <= x"7e4f"; -- 44dB
+--        when x"d9" => gain_n <= x"7fe0"; -- 43dB
 
 		when others => gain_n <= x"7fff"; -- 0dB
 		

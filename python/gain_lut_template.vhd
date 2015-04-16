@@ -25,7 +25,7 @@ end gain_lut;
 
 architecture Behavioral of gain_lut is
 
-	signal dB_max_c, dB_max_n 	: std_logic_vector(7 downto 0) := (others => '0'); -- max power
+	signal dB_max_c, dB_max_n 	: std_logic_vector(7 downto 0) := (others => '0'); 	-- max power
 	signal gain_c, gain_n 		: std_logic_vector(15 downto 0) := (others => '0'); -- gain corresponding to max power
 
 begin

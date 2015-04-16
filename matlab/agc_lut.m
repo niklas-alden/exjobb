@@ -59,7 +59,7 @@ function [gain] = agc_lut(~)
     gain = lut(:,5);
 
 % PLOT
-if 1 == 0
+if 1 == 1
     clf;
     figure(2)
     subplot(211)
@@ -84,7 +84,7 @@ end
 
 % EXPORT TO FILE
 if 1 == 1
-    export_curve = 5;
+    export_curve = 6;
     fileID = fopen('matlab_gain_lut.txt','wt');
     fprintf(fileID, '%1.15f\n', lut(:,export_curve));
     fclose(fileID);

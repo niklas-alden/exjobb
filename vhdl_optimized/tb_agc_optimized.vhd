@@ -61,7 +61,7 @@ ARCHITECTURE behavior OF tb_agc IS
    signal o_done : std_logic;
 
    -- Clock period definitions
-   constant clk_period : time := 40 ns;
+   constant clk_period : time := 10 ns;
  
 BEGIN
  
@@ -108,7 +108,7 @@ BEGIN
 			i_sample <= std_logic_vector(to_signed(in_data,16));
 			wait for clk_period;
 			i_start <= '0';
-			wait for clk_period*15;
+			wait for clk_period*25;
 						
 		end loop;
 		

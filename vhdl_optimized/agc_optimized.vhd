@@ -65,7 +65,7 @@ architecture Behavioral of agc is
 	
 	
 	type state_type is (HOLD, HP_CALC1, HP_CALC2, HP_CALC3, HP_CALC4, 
-						EQ_CALC1, EQ_CALC2, EQ_CALC3, EQ_CALC4, EQ_CALC5, EQ_CALC6, FINISH_CALC, SEND); -- states for FSM    
+						EQ_CALC1, EQ_CALC2, EQ_CALC3, EQ_CALC4, EQ_CALC5, EQ_CALC6, FINISH_CALC); -- states for FSM    
 	signal state_c, state_n 		: state_type := HOLD;
 	
 begin
@@ -115,7 +115,7 @@ end process;
 
 fsm_proc : process(state_c, i_start, hp_x_c, hp_x_prev_c, hp_y_prev_c, eq_x_c, eq_x_prev_c, eq_x_prev_prev_c, eq_y_prev_c, eq_y_prev_prev_c, mult_src1, mult_src2, add_src1, add_src2) is
 --, mult_out, add_out
-
+--------------------- i_sample, eq_y_n ??
 begin
 	-- default values
 	state_n			<= state_c;
@@ -127,6 +127,7 @@ begin
 	eq_x_n			<= eq_x_c;
 	eq_x_prev_n 	<= eq_x_prev_c;
 	eq_x_prev_prev_n <= eq_x_prev_prev_c;
+	eq_y_n			<= eq_y_c;
 	eq_y_prev_n 	<= eq_y_prev_c;
 	eq_y_prev_prev_n <= eq_y_prev_prev_c;
 	
@@ -141,9 +142,7 @@ begin
 	mult_src2 	<= (others => '0');
 		
 	o_done 		<= '0';
---	o_sample 	<= std_logic_vector(add_out_c(31 downto 16));
 	o_sample 	<= std_logic_vector(eq_y_c);
---	o_sample 	<= (others => '0');
 	
 	case state_c is
 		when HOLD =>
@@ -270,13 +269,13 @@ begin
 			eq_y_n		<= add_out(31 downto 16);
 
 			
-		when SEND =>
+--		when SEND =>
 --			o_done 		<= '1';
 --			o_sample 	<= std_logic_vector(add_out_c(31 downto 16));
 --			o_sample 	<= std_logic_vector(add_out(31 downto 16));
 --			eq_y_n		<= add_out_c(31 downto 16);
 --			eq_y_n		<= add_out(31 downto 16);
-			state_n		<= HOLD;	
+--			state_n		<= HOLD;	
 			
 	end case;
 	

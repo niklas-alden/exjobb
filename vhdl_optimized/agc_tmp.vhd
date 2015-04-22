@@ -40,17 +40,17 @@ architecture Behavioral of agc_tmp is
 	signal curr_sample_c, curr_sample_n : signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- current input sample
 	signal P_in_c 						: unsigned(WIDTH-1 downto 0) := (others => '0'); -- power of input sample
 	signal P_in_n 						: unsigned(WIDTH-1 downto 0) := (others => '0');
-	signal P_weigh_c 					: unsigned(WIDTH-1 downto 0) := (others => '0'); -- weighted power of input sample
+--	signal P_weigh_c 					: unsigned(WIDTH-1 downto 0) := (others => '0'); -- weighted power of input sample
 --	signal P_weigh_n 					: unsigned(46 downto 0) := (others => '0');
-	signal P_weigh_n 					: unsigned(WIDTH-1 downto 0) := (others => '0');
+--	signal P_weigh_n 					: unsigned(WIDTH-1 downto 0) := (others => '0');
 	signal P_dB_c, P_dB_n 				: signed(7 downto 0) 	:= (others => '0'); -- weighted power of input sample in decibel
 	signal P_prev_c, P_prev_n 			: unsigned(WIDTH-1 downto 0) := (others => '0'); -- power of output sample
 	signal lut_delay_c, lut_delay_n 	: unsigned(0 downto 0) 	:= (others => '0'); -- one bit delay counter for LUT look-up time	
-	signal agc_out_c, agc_out_n			: signed(WIDTH-1 downto 0) 	:= (others => '0'); -- attenuated sample
+	signal agc_out_c, agc_out_n			: signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- attenuated sample
 	
 --	signal P_w0_c, P_w0_n, P_w1_c, P_w1_n : unsigned(46 downto 0) := (others => '0'); -- temporary registers for weightening multiplications
 	
-	type state_type is (HOLD, P_CURR, P_COMP, P_W_1A, P_W_1B, P_W_2A, P_W_2B, P_W_3, P_dB, FETCH_GAIN, GAIN, SEND, SEND2); -- states for FSM
+	type state_type is (HOLD, P_CURR, P_COMP, P_W_1A, P_W_1B, P_W_2A, P_W_2B, P_W_3, P_dB, FETCH_GAIN, FETCH_GAIN2, GAIN, SEND, SEND2); -- states for FSM
 	signal state_c, state_n 			: state_type := HOLD;
 
 begin
@@ -64,7 +64,7 @@ begin
 		P_in_c 			<= (others => '0');
 --		P_w0_c			<= (others => '0');
 --		P_w1_c			<= (others => '0');
-		P_weigh_c 		<= (others => '0');
+--		P_weigh_c 		<= (others => '0');
 		P_dB_c 			<= (others => '0');
 		P_prev_c 		<= (others => '0');
 		agc_out_c 		<= (others => '0');
@@ -76,7 +76,7 @@ begin
 --		P_w0_c			<= P_w0_n;
 --		P_w1_c			<= P_w1_n;
 --		P_weigh_c 		<= P_weigh_n(46 downto 15);
-		P_weigh_c 		<= P_weigh_n;
+--		P_weigh_c 		<= P_weigh_n;
 		P_dB_c 			<= P_dB_n;
 		P_prev_c 		<= P_prev_n;
 		agc_out_c 		<= agc_out_n;
@@ -88,15 +88,15 @@ end process;
 
 -- FSM for AGC process
 ----------------------------------------------------------------------------------
-power_proc : process(state_c, curr_sample_c, P_in_c, P_weigh_c, P_dB_c, P_prev_c, agc_out_c, i_sample, i_start, i_gain, lut_delay_c, mult_src1, mult_src2, add_src1, add_src2) is
+power_proc : process(state_c, curr_sample_c, P_in_c,  P_dB_c, P_prev_c, agc_out_c, i_sample, i_start, i_gain, lut_delay_c, mult_src1, mult_src2, add_src1, add_src2) is
 begin
 	--default assignments
 	state_n 		<= state_c;
 	P_in_n 			<= resize(P_in_c, 32);
---	P_w0_n			<= P_w0_c;P_w0_c, P_w1_c,
+--	P_w0_n			<= P_w0_c;
 --	P_w1_n			<= P_w1_c;
 --	P_weigh_n 		<= P_weigh_c & "000000000000000";
-	P_weigh_n 		<= P_weigh_c;
+--	P_weigh_n 		<= P_weigh_c;
 	P_dB_n 			<= P_dB_c;
 	curr_sample_n 	<= curr_sample_c;
 	P_prev_n 		<= P_prev_c;
@@ -108,7 +108,8 @@ begin
 	add_src1 	<= (others => '0');
 	add_src2 	<= (others => '0');
 	
-	o_sample 		<= std_logic_vector(agc_out_c(30 downto 15)); 	-- output sample
+--	o_sample 		<= std_logic_vector(agc_out_c(30 downto 15)); 	-- output sample
+	o_sample 		<= std_logic_vector(agc_out_c); 	-- output sample
 	o_power 		<= std_logic_vector(P_dB_n); 					-- output power to LUT
 	o_gain_fetch 	<= '0'; 										-- don't enable LUT
 	
@@ -142,12 +143,12 @@ begin
 			end if;
 			
 		when P_W_1A =>
-			mult_src1 	<= resize(signed(32768 - alpha), WIDTH);
+			mult_src1 	<= resize(signed(32768 - alpha), WIDTH); -- 32768 - alpha(164) = 32604
 			mult_src2	<= signed(P_prev_c);
 			state_n 	<= P_W_2A;
 			
 		when P_W_1B =>
-			mult_src1 	<= resize(signed(32768 - beta), WIDTH);
+			mult_src1 	<= resize(signed(32768 - beta), WIDTH); -- 32768 - beta(983) = 31785
 			mult_src2	<= signed(P_prev_c);
 			state_n 	<= P_W_2B;
 			
@@ -174,7 +175,7 @@ begin
 		-- convert the weighted power to decibel 
 		when P_dB =>
 --			P_weigh_n <= unsigned(add_out(46 downto 0));
-			P_weigh_n <= unsigned(add_out(46 downto 15));
+--			P_weigh_n <= unsigned(add_out(46 downto 15));
 		
 			if unsigned(add_out(46 downto 15)) > x"2133a19c6" then -- >99.5dB
 				P_dB_n <= to_signed(18, 8);
@@ -378,14 +379,18 @@ begin
 		
 		-- enable LUT and what for returned gain
 		when FETCH_GAIN =>
-			if lut_delay_c = 0 then
+--			if lut_delay_c = 0 then
 				o_gain_fetch 	<= '1'; 			-- enable LUT
-				lut_delay_n 	<= lut_delay_c + 1; -- increase delay counter
-				state_n 		<= FETCH_GAIN; 		-- stay in same state
-			else
-				lut_delay_n 	<= (others => '0'); -- clear delay counter
-				state_n 		<= GAIN;
-			end if;
+--				lut_delay_n 	<= lut_delay_c + 1; -- increase delay counter
+--				state_n 		<= FETCH_GAIN; 		-- stay in same state
+				state_n 		<= FETCH_GAIN2; 		-- stay in same state
+--			else
+--				lut_delay_n 	<= (others => '0'); -- clear delay counter
+--				state_n 		<= GAIN;
+--			end if;
+			
+		when FETCH_GAIN2 =>
+			state_n <= GAIN;
 			
 		-- multiply current sample with the gain fetched from LUT
 		when GAIN =>
@@ -396,7 +401,7 @@ begin
 			else
 --				agc_out_n <= signed(curr_sample_c) * to_signed(32767, 16); 	-- multiply with default gain => no attenuation
 				mult_src1 	<= resize(curr_sample_c, WIDTH);
-				mult_src2 	<= resize(to_signed(32767, 16), WIDTH);
+				mult_src2 	<= to_signed(32767, WIDTH);
 			end if;
 			state_n <= SEND;
 		
@@ -405,7 +410,8 @@ begin
 --			P_prev_n 	<= unsigned(abs(signed(agc_out_c(30 downto 15))) * abs(signed(agc_out_c(30 downto 15))));
 			mult_src1 	<= abs(mult_out(46 downto 15));
 			mult_src2 	<= abs(mult_out(46 downto 15));
-			agc_out_n 	<= mult_out(WIDTH-1 downto 0);
+--			agc_out_n 	<= mult_out(WIDTH-1 downto 0);
+			agc_out_n 	<= mult_out(30 downto 15);
 			state_n 	<= SEND2;
 		
 		when SEND2 =>

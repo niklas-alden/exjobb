@@ -2,15 +2,15 @@
 -- Company: 
 -- Engineer:
 --
--- Create Date:   15:44:20 04/21/2015
+-- Create Date:   20:33:21 04/22/2015
 -- Design Name:   
--- Module Name:   D:/Google Drive/Exjobb/vhdl_optimized/hp_filter/tb_hp_filter.vhd
+-- Module Name:   D:/Google Drive/Exjobb/vhdl_optimized/hp_filter/tb_agc_tmp.vhd
 -- Project Name:  hp_filter
 -- Target Device:  
 -- Tool versions:  
 -- Description:   
 -- 
--- VHDL Test Bench Created by ISE for module: hp_filter
+-- VHDL Test Bench Created by ISE for module: agc_tmp
 -- 
 -- Dependencies:
 -- 
@@ -31,21 +31,23 @@ USE ieee.numeric_std.ALL;
 use IEEE.std_logic_textio.all;
 use std.textio.all;
  
-ENTITY tb_agc IS
-END tb_agc;
+ENTITY tb_agc_tmp IS
+END tb_agc_tmp;
  
-ARCHITECTURE behavior OF tb_agc IS 
+ARCHITECTURE behavior OF tb_agc_tmp IS 
  
     -- Component Declaration for the Unit Under Test (UUT)
  
-    COMPONENT agc
+    COMPONENT agc_tmp
     PORT(
          clk : IN  std_logic;
          rstn : IN  std_logic;
          i_sample : IN  std_logic_vector(15 downto 0);
          i_start : IN  std_logic;
-         o_sample : OUT  std_logic_vector(15 downto 0);
-         o_done : OUT  std_logic
+         i_gain : IN  std_logic_vector(15 downto 0);
+         o_power : OUT  std_logic_vector(7 downto 0);
+         o_gain_fetch : OUT  std_logic;
+         o_sample : OUT  std_logic_vector(15 downto 0)
         );
     END COMPONENT;
     
@@ -55,24 +57,28 @@ ARCHITECTURE behavior OF tb_agc IS
    signal rstn : std_logic := '0';
    signal i_sample : std_logic_vector(15 downto 0) := (others => '0');
    signal i_start : std_logic := '0';
+   signal i_gain : std_logic_vector(15 downto 0) := (others => '0');
 
  	--Outputs
+   signal o_power : std_logic_vector(7 downto 0);
+   signal o_gain_fetch : std_logic;
    signal o_sample : std_logic_vector(15 downto 0);
-   signal o_done : std_logic;
 
    -- Clock period definitions
-   constant clk_period : time := 40 ns;
+   constant clk_period : time := 10 ns;
  
 BEGIN
  
 	-- Instantiate the Unit Under Test (UUT)
-   uut: agc PORT MAP (
+   uut: agc_tmp PORT MAP (
           clk => clk,
           rstn => rstn,
           i_sample => i_sample,
           i_start => i_start,
-          o_sample => o_sample,
-          o_done => o_done
+          i_gain => i_gain,
+          o_power => o_power,
+          o_gain_fetch => o_gain_fetch,
+          o_sample => o_sample
         );
 
    -- Clock process definitions
@@ -98,6 +104,9 @@ BEGIN
 		rstn <= '1';
       wait for clk_period;
 		i_sample <= (others => '0');
+			
+		i_gain <= x"7FFF";
+		
 		wait for clk_period;
 		
 		while not endfile(stimulus) loop

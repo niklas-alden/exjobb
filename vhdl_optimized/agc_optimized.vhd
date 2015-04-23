@@ -12,7 +12,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity agc is
+entity agc_optimized is
     Port ( 	clk 			: in std_logic; 					-- clock
 			rstn 			: in std_logic; 					-- reset, active low
 			i_sample 		: in std_logic_vector(15 downto 0); -- input sample from AC97
@@ -22,9 +22,9 @@ entity agc is
 			o_gain_fetch 	: out std_logic;					-- enable signal for LUT
 			o_sample 		: out std_logic_vector(15 downto 0)	-- output sample to equalizer filter
 			);
-end agc;
+end agc_optimized;
 
-architecture Behavioral of agc is
+architecture Behavioral of agc_optimized is
 	
 	constant WIDTH 			: integer 	:= 32;	-- general register width
 	signal delay_c, delay_n : std_logic	:= '0';	-- one bit delay counter

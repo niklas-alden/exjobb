@@ -2,15 +2,15 @@
 -- Company: 
 -- Engineer:
 --
--- Create Date:   15:44:20 04/21/2015
+-- Create Date:   11:54:19 04/23/2015
 -- Design Name:   
--- Module Name:   D:/Google Drive/Exjobb/vhdl_optimized/hp_filter/tb_hp_filter.vhd
+-- Module Name:   D:/Google Drive/Exjobb/vhdl_optimized/hp_filter/tb_agc_tmp_lut.vhd
 -- Project Name:  hp_filter
 -- Target Device:  
 -- Tool versions:  
 -- Description:   
 -- 
--- VHDL Test Bench Created by ISE for module: hp_filter
+-- VHDL Test Bench Created by ISE for module: agc_optimized_top
 -- 
 -- Dependencies:
 -- 
@@ -31,23 +31,20 @@ USE ieee.numeric_std.ALL;
 use IEEE.std_logic_textio.all;
 use std.textio.all;
  
-ENTITY tb_agc IS
-END tb_agc;
+ENTITY tb_agc_tmp_lut IS
+END tb_agc_tmp_lut;
  
-ARCHITECTURE behavior OF tb_agc IS 
+ARCHITECTURE behavior OF tb_agc_tmp_lut IS 
  
     -- Component Declaration for the Unit Under Test (UUT)
  
-    COMPONENT agc
+    COMPONENT agc_optimized_top
     PORT(
-		clk 		: in std_logic; 					-- clock
-		rstn 		: in std_logic; 					-- reset, active low
-		i_sample 	: in std_logic_vector(15 downto 0); -- input sample from AC97
-		i_start 	: in std_logic; 					-- start signal from AC97
-		i_gain 		: in std_logic_vector(15 downto 0);	-- gain fetched from LUT
-		o_power 	: out std_logic_vector(7 downto 0);	-- sample power to LUT
-		o_gain_fetch : out std_logic;					-- enable signal for LUT
-		o_sample 	: out std_logic_vector(15 downto 0)	-- output sample to equalizer filter
+         clk : IN  std_logic;
+         rstn : IN  std_logic;
+         i_sample : IN  std_logic_vector(15 downto 0);
+         i_start : IN  std_logic;
+         o_sample : OUT  std_logic_vector(15 downto 0)
         );
     END COMPONENT;
     
@@ -57,11 +54,8 @@ ARCHITECTURE behavior OF tb_agc IS
    signal rstn : std_logic := '0';
    signal i_sample : std_logic_vector(15 downto 0) := (others => '0');
    signal i_start : std_logic := '0';
-   signal i_gain : std_logic_vector(15 downto 0);
 
  	--Outputs
-   signal o_power : std_logic_vector(7 downto 0);
-   signal o_gain_fetch : std_logic;
    signal o_sample : std_logic_vector(15 downto 0);
 
    -- Clock period definitions
@@ -70,14 +64,11 @@ ARCHITECTURE behavior OF tb_agc IS
 BEGIN
  
 	-- Instantiate the Unit Under Test (UUT)
-   uut: agc PORT MAP (
+   uut: agc_optimized_top PORT MAP (
           clk => clk,
           rstn => rstn,
           i_sample => i_sample,
           i_start => i_start,
-		  i_gain => i_gain,
-		  o_power => o_power,
-		  o_gain_fetch => o_gain_fetch,
           o_sample => o_sample
         );
 
@@ -91,7 +82,7 @@ BEGIN
    end process;
  
 
--- Stimulus process
+ -- Stimulus process
    stim_proc: process
     
  	file stimulus : text is in "SIMULATION_DATA.txt";
@@ -104,9 +95,8 @@ BEGIN
 		rstn <= '1';
       wait for clk_period;
 		i_sample <= (others => '0');
+			
 		wait for clk_period;
-		
-		i_gain <= x"7FFF";
 		
 		while not endfile(stimulus) loop
           -- read digital data from input file
@@ -116,7 +106,7 @@ BEGIN
 			i_sample <= std_logic_vector(to_signed(in_data,16));
 			wait for clk_period;
 			i_start <= '0';
-			wait for clk_period*42;
+			wait for clk_period*45;
 						
 		end loop;
 		

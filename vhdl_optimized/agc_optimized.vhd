@@ -13,39 +13,40 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity agc is
-    Port ( 	clk 		: in std_logic; 					-- clock
-			rstn 		: in std_logic; 					-- reset, active low
-			i_sample 	: in std_logic_vector(15 downto 0); -- input sample from AC97
-			i_start 	: in std_logic; 					-- start signal from AC97
-			i_gain 		: in std_logic_vector(15 downto 0);	-- gain fetched from LUT
-			o_power 	: out std_logic_vector(7 downto 0);	-- sample power to LUT
-			o_gain_fetch : out std_logic;					-- enable signal for LUT
-			o_sample 	: out std_logic_vector(15 downto 0)	-- output sample to equalizer filter
+    Port ( 	clk 			: in std_logic; 					-- clock
+			rstn 			: in std_logic; 					-- reset, active low
+			i_sample 		: in std_logic_vector(15 downto 0); -- input sample from AC97
+			i_start 		: in std_logic; 					-- start signal from AC97
+			i_gain 			: in std_logic_vector(15 downto 0);	-- gain fetched from LUT
+			o_power 		: out std_logic_vector(7 downto 0);	-- sample power to LUT
+			o_gain_fetch 	: out std_logic;					-- enable signal for LUT
+			o_sample 		: out std_logic_vector(15 downto 0)	-- output sample to equalizer filter
 			);
 end agc;
 
 architecture Behavioral of agc is
 	
-	constant WIDTH					: integer := 32;
+	constant WIDTH 			: integer 	:= 32;	-- general register width
+	signal delay_c, delay_n : std_logic	:= '0';	-- one bit delay counter
 	
+	-- HIGH PASS FILTER
 	-- high pass filter coefficients
 	constant hp_b_0 : signed(WIDTH/2-1 downto 0) := to_signed(504, WIDTH/2);
 	constant hp_b_1 : signed(WIDTH/2-1 downto 0) := to_signed(-504,WIDTH/2);
 	constant hp_a_1 : signed(WIDTH/2-1 downto 0) := to_signed(496, WIDTH/2); -- OBS changed sign
 	
-	-- equalizer filter coefficients
-	constant eq_b_0 : signed(WIDTH-1 downto 0) := to_signed(55484, WIDTH);
-	constant eq_b_1 : signed(WIDTH-1 downto 0) := to_signed(-313, WIDTH);
-	constant eq_b_2 : signed(WIDTH-1 downto 0) := to_signed(-55123, WIDTH);
-	constant eq_a_1 : signed(WIDTH-1 downto 0) := to_signed(313, WIDTH); -- OBS changed sign
-	constant eq_a_2 : signed(WIDTH-1 downto 0) := to_signed(151, WIDTH); -- OBS changed sign
-	
-	-- HIGH PASS FILTER
 	signal hp_x_c, hp_x_n 			: signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- current input sample
 	signal hp_x_prev_c, hp_x_prev_n : signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- previous input sample
 	signal hp_y_prev_c, hp_y_prev_n	: signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- previous output sample
 	
 	-- EQUALIZER FILTER
+	-- equalizer filter coefficients
+	constant eq_b_0 : signed(WIDTH-1 downto 0) := to_signed(55484, WIDTH);
+	constant eq_b_1 : signed(WIDTH-1 downto 0) := to_signed(-313, WIDTH);
+	constant eq_b_2 : signed(WIDTH-1 downto 0) := to_signed(-55123, WIDTH);
+	constant eq_a_1 : signed(WIDTH-1 downto 0) := to_signed(313, WIDTH); 	-- OBS changed sign
+	constant eq_a_2 : signed(WIDTH-1 downto 0) := to_signed(151, WIDTH); 	-- OBS changed sign
+	
 	signal eq_x_c, eq_x_n 						: signed(WIDTH-1 downto 0) 	:= (others => '0'); -- current input sample
 	signal eq_x_prev_c, eq_x_prev_n 			: signed(WIDTH-1 downto 0) 	:= (others => '0'); -- previous input sample
 	signal eq_x_prev_prev_c, eq_x_prev_prev_n 	: signed(WIDTH-1 downto 0) 	:= (others => '0'); -- before last input sample
@@ -54,8 +55,8 @@ architecture Behavioral of agc is
 	
 	-- AGC
 	-- time parameters
-	constant alpha 	: unsigned(15 downto 0) := to_unsigned(164, 16); -- attack time
-	constant beta 	: unsigned(15 downto 0) := to_unsigned(983, 16); -- release time
+	constant alpha 	: unsigned(15 downto 0) := to_unsigned(164, WIDTH/2); -- attack time
+	constant beta 	: unsigned(15 downto 0) := to_unsigned(983, WIDTH/2); -- release time
 	
 	signal curr_sample_c, curr_sample_n : signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- current input sample
 	signal P_in_c, P_in_n 				: unsigned(WIDTH-1 downto 0)	:= (others => '0'); -- power of input sample
@@ -64,19 +65,18 @@ architecture Behavioral of agc is
 	signal agc_out_c, agc_out_n			: signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- attenuated sample
 	
 	-- MULTIPLIER AND ADDER
-	signal mult_src1_c, mult_src1_n : signed(WIDTH-1 downto 0) := (others => '0');
-	signal mult_src2_c, mult_src2_n : signed(WIDTH-1 downto 0) := (others => '0');
-	signal mult_out_c, mult_out_n 	: signed(2*WIDTH-1 downto 0) := (others => '0');
-	signal add_src1_c, add_src1_n 	: signed(2*WIDTH-1 downto 0) := (others => '0');
-	signal add_src2_c, add_src2_n 	: signed(2*WIDTH-1 downto 0) := (others => '0');
-	signal add_out_c, add_out_n 	: signed(2*WIDTH-1 downto 0) := (others => '0');
+	signal mult_src1_c, mult_src1_n : signed(WIDTH-1 downto 0) 		:= (others => '0');
+	signal mult_src2_c, mult_src2_n : signed(WIDTH-1 downto 0) 		:= (others => '0');
+	signal mult_out_c, mult_out_n 	: signed(2*WIDTH-1 downto 0) 	:= (others => '0');
+	signal add_src1_c, add_src1_n 	: signed(2*WIDTH-1 downto 0) 	:= (others => '0');
+	signal add_src2_c, add_src2_n 	: signed(2*WIDTH-1 downto 0) 	:= (others => '0');
+	signal add_out_c, add_out_n 	: signed(2*WIDTH-1 downto 0) 	:= (others => '0');
 		
-	signal delay_c, delay_n 		: std_logic	:= '0';	-- one bit delay counter
-	
+	-- states for FSM    
 	type state_type is (HOLD, HP_CALC1, HP_CALC2, HP_CALC3, HP_CALC4, 
 						EQ_CALC1, EQ_CALC2, EQ_CALC3, EQ_CALC4, EQ_CALC5, EQ_CALC6, FINISH_CALC,
-						P_CURR, P_COMP, P_W_1A, P_W_1B, P_W_2A, P_W_2B, P_W_3, P_dB, FETCH_GAIN, GAIN, AGC_SEND, P_OUT); -- states for FSM    
-	signal state_c, state_n 		: state_type := HOLD;
+						P_CURR, P_COMP, P_W_1A, P_W_1B, P_W_2A, P_W_2B, P_W_3, P_dB, FETCH_GAIN, GAIN, AGC_SEND, P_OUT); 
+	signal state_c, state_n : state_type := HOLD;
 	
 begin
 
@@ -157,77 +157,83 @@ begin
 	add_src2_n 			<= add_src2_c;
 	add_out_n			<= add_out_c;
 	delay_n				<= delay_c;
---	o_done 				<= '0';
+	o_sample 			<= std_logic_vector(agc_out_c); -- output sample
+	o_power 			<= std_logic_vector(P_dB_n); 	-- output power to LUT
+	o_gain_fetch 		<= '0'; 						-- don't enable LUT
 
 	
-	o_sample 		<= std_logic_vector(agc_out_c); -- output sample
-	o_power 		<= std_logic_vector(P_dB_n); 	-- output power to LUT
-	o_gain_fetch 	<= '0'; 						-- don't enable LUT
-
-	
+	case state_c is
+----------------------------------------------------------------------------------	
 -- HIGH PASS FILTER
 ----------------------------------------------------------------------------------	
-	case state_c is
+		-- wait for start signal before latching input sample
 		when HOLD =>
 			if i_start = '1' then
 				hp_x_n	<= signed(i_sample);
 				state_n	<= HP_CALC1;
 			end if;
 
+		-- multiply current input sample with filter coefficient
 		when HP_CALC1 =>
 			mult_src1_n <= resize(hp_x_c, WIDTH);
 			mult_src2_n <= resize(hp_b_0, WIDTH);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
-				delay_n <= not delay_c; -- increase delay counter
+				delay_n <= not delay_c;
 				state_n	<= HP_CALC1;
 			else
-				delay_n <= '0'; 		-- clear delay counter
+				delay_n <= '0';
 				state_n	<= HP_CALC2;
 			end if;
-			
+		
+		-- multiply previous input sample with filter coefficient
 		when HP_CALC2 =>
 			mult_src1_n <= resize(hp_x_prev_c, WIDTH);
 			mult_src2_n <= resize(hp_b_1, WIDTH);
 			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
-				delay_n <= not delay_c;	-- increase delay counter
+				delay_n <= not delay_c;
 				state_n <= HP_CALC2;
 			else
-				delay_n <= '0'; 		-- clear delay counter	
+				delay_n <= '0';	
 				state_n <= HP_CALC3;
 			end if;
-			
+		
+		-- multiply previous output sample with filter coefficient
 		when HP_CALC3 =>
 			mult_src1_n <= resize(hp_y_prev_c, WIDTH);
 			mult_src2_n <= resize(hp_a_1, WIDTH);
 			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
-				delay_n <= not delay_c; -- increase delay counter
+				delay_n <= not delay_c;
 				state_n <= HP_CALC3;
 			else
-				delay_n <= '0'; 		-- clear delay counter	
+				delay_n <= '0';
 				state_n <= HP_CALC4;
 			end if;
-			
+		
+		-- sum up to get output sample from high pass filter
 		when HP_CALC4 =>
 			mult_src1_n <= (others => '0');
 			mult_src2_n <= (others => '0');
 			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
-				delay_n <= not delay_c; -- increase delay counter
+				delay_n <= not delay_c;
 				state_n <= HP_CALC4;
 			else
-				delay_n <= '0';		 	-- clear delay counter	
+				delay_n <= '0';
 				state_n <= EQ_CALC1;
 			end if;
 
+----------------------------------------------------------------------------------
 -- EQUALIZER FILTER
 ----------------------------------------------------------------------------------
+		-- save input and output sample as previous samples for high pass filter
+		-- multiply current input sample with filter coefficient
 		when EQ_CALC1 =>
 			hp_x_prev_n <= hp_x_c;
 			hp_y_prev_n <= add_out_c(24 downto 9);
@@ -237,98 +243,103 @@ begin
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
-				delay_n <= not delay_c; -- increase delay counter
+				delay_n <= not delay_c;
 				state_n <= EQ_CALC1;
 			else
-				delay_n <= '0'; 		-- clear delay counter	
+				delay_n <= '0';
 				state_n <= EQ_CALC2;
 			end if;
-			
+		
+		-- multiply previous input sample with filter coefficient
 		when EQ_CALC2 =>
 			mult_src1_n <= eq_x_prev_c;
 			mult_src2_n <= eq_b_1;
 			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
-				delay_n <= not delay_c; -- increase delay counter
+				delay_n <= not delay_c;
 				state_n <= EQ_CALC2;
 			else
-				delay_n <= '0'; 		-- clear delay counter
+				delay_n <= '0';
 				state_n	<= Eq_CALC3;
 			end if;
 		
+		-- multiply before last input sample with filter coefficient
 		when EQ_CALC3 =>
 			mult_src1_n <= eq_x_prev_prev_c;
 			mult_src2_n <= eq_b_2;
 			add_src1_n 	<= add_out_c;
 			add_src2_n 	<= mult_out_c;
 			if delay_c = '0' then
-				delay_n <= not delay_c; -- increase delay counter
+				delay_n <= not delay_c;
 				state_n <= EQ_CALC3;
 			else
-				delay_n <= '0'; 		-- clear delay counter
+				delay_n <= '0';
 				state_n	<= EQ_CALC4;
 			end if;
 		
+		-- multiply previous output sample with filter coefficient
 		when EQ_CALC4 =>
 			mult_src1_n <= eq_y_prev_c;
 			mult_src2_n <= eq_a_1;
 			add_src1_n 	<= add_out_c;
 			add_src2_n 	<= mult_out_c;
 			if delay_c = '0' then
-				delay_n <= not delay_c; -- increase delay counter
+				delay_n <= not delay_c;
 				state_n <= EQ_CALC4;
 			else
-				delay_n <= '0'; 		-- clear delay counter
+				delay_n <= '0';
 				state_n	<= EQ_CALC5;
 			end if;
 		
+		-- multiply before last ouput sample with filter coefficient
 		when EQ_CALC5 =>
 			mult_src1_n <= eq_y_prev_prev_c;
 			mult_src2_n <= eq_a_2;
 			add_src1_n 	<= add_out_c;
 			add_src2_n 	<= mult_out_c;
 			if delay_c = '0' then
-				delay_n <= not delay_c;	-- increase delay counter
+				delay_n <= not delay_c;
 				state_n <= EQ_CALC5;
 			else
-				delay_n <= '0';		 	-- clear delay counter
+				delay_n <= '0';
 				state_n	<= EQ_CALC6;
 			end if;
 		
+		-- sum up to get output sample from high pass filter
 		when EQ_CALC6 =>
 			mult_src1_n <= (others => '0');
 			mult_src2_n <= (others => '0');
 			add_src1_n 	<= add_out_c;
 			add_src2_n 	<= mult_out_c;
 			if delay_c = '0' then
-				delay_n <= not delay_c; -- increase delay counter
+				delay_n <= not delay_c;
 				state_n <= EQ_CALC6;
 			else
-				delay_n <= '0'; 		-- clear delay counter
+				delay_n <= '0';
 				state_n	<= FINISH_CALC;
 			end if;
 		
+		-- save input and output sample as previous and before last samples for equalizer filter
+		-- latch in current sample to AGC
 		when FINISH_CALC =>
 			eq_x_prev_n			<= eq_x_c;
 			eq_x_prev_prev_n	<= eq_x_prev_c;
 			eq_y_prev_n			<= add_out_c(40 downto 9);
 			eq_y_prev_prev_n	<= eq_y_prev_c;			
---			o_done 				<= '1';
---			o_sample 			<= std_logic_vector(add_out_c(31 downto 16));
 			curr_sample_n		<= add_out_c(31 downto 16);
 			state_n				<= P_CURR;
+			
+----------------------------------------------------------------------------------			
 -- AGC
 ----------------------------------------------------------------------------------
 		
--- calculate power of current sample
+		-- calculate power of current sample
 		when P_CURR =>
---			P_in_c
 			mult_src1_n <= resize(abs(curr_sample_c), WIDTH);
 			mult_src2_n	<= resize(abs(curr_sample_c), WIDTH);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
---			P_in_n 	<= unsigned(abs(signed(curr_sample_c)) * abs(signed(curr_sample_c)));
 			if delay_c = '0' then
 				delay_n <= not delay_c;
 				state_n <= P_CURR;
@@ -338,7 +349,6 @@ begin
 			end if;
 		
 		-- compare the power of the current sample against previous sample to determine increasing or decreasing power
-		-- then weigh the power of the current sample against previous sample
 		when P_COMP =>
 			P_in_n <= unsigned(abs(mult_out_c(WIDTH-1 downto 0)));
 			
@@ -347,7 +357,8 @@ begin
 			else
 				state_n <= P_W_1B;
 			end if;
-			
+		
+		-- increasing power, weigh against previous sample
 		when P_W_1A =>
 			mult_src1_n	<= resize(signed(32768 - alpha), WIDTH); -- 32768 - alpha(164) = 32604
 			mult_src2_n	<= signed(P_prev_c);
@@ -360,7 +371,8 @@ begin
 				delay_n <= '0';
 				state_n <= P_W_2A;
 			end if;
-			
+		
+		-- decreasing power, weigh against previous sample
 		when P_W_1B =>
 			mult_src1_n <= resize(signed(32768 - beta), WIDTH); -- 32768 - beta(983) = 31785
 			mult_src2_n	<= signed(P_prev_c);
@@ -373,7 +385,8 @@ begin
 				delay_n <= '0';
 				state_n <= P_W_2B;
 			end if;
-			
+		
+		-- increasing power, weigh in current sample
 		when P_W_2A =>
 			mult_src1_n	<= resize(signed(alpha), WIDTH);
 			mult_src2_n	<= signed(P_in_c);
@@ -386,7 +399,8 @@ begin
 				delay_n <= '0';
 				state_n <= P_W_3;
 			end if;
-			
+		
+		-- decreasing power, weigh in current sample
 		when P_W_2B =>
 			mult_src1_n	<= resize(signed(beta), WIDTH);
 			mult_src2_n	<= signed(P_in_c);
@@ -400,6 +414,7 @@ begin
 				state_n <= P_W_3;
 			end if;
 	
+		-- sum up to get weighted power of current sample
 		when P_W_3 =>
 			mult_src1_n	<= (others => '0');
 			mult_src2_n	<= (others => '0');
@@ -614,14 +629,14 @@ begin
 			end if;			
 			state_n <= FETCH_GAIN;
 		
-		-- enable LUT and what for returned gain
+		-- enable LUT and wait for returned gain
 		when FETCH_GAIN =>
 			if delay_c = '0' then
 				o_gain_fetch	<= '1'; 		-- enable LUT
-				delay_n 		<= not delay_c;	-- increase delay counter
-				state_n 		<= FETCH_GAIN; 	-- stay in same state
+				delay_n 		<= not delay_c;
+				state_n 		<= FETCH_GAIN;
 			else
-				delay_n 		<= '0'; 		-- clear delay counter
+				delay_n 		<= '0';
 				state_n 		<= GAIN;
 			end if;
 
@@ -633,12 +648,12 @@ begin
 				mult_src1_n	<= resize(curr_sample_c, WIDTH);
 				mult_src2_n	<= resize(signed(i_gain), WIDTH);
 			else
-				-- multiply with default gain => no attenuation
+				-- multiply with default gain = no attenuation
 				mult_src1_n	<= resize(curr_sample_c, WIDTH);
 				mult_src2_n	<= to_signed(32767, WIDTH);
 			end if;
-			add_src1_n <= (others => '0');
-			add_src2_n <= (others => '0');
+			add_src1_n 	<= (others => '0');
+			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
 				delay_n <= not delay_c;
 				state_n <= GAIN;
@@ -647,10 +662,12 @@ begin
 				state_n <= AGC_SEND;
 			end if;
 		
-		-- calculate power of output sample for comparison and weighting with next input sample
+		-- output processed sample and calculate power of output sample 
 		when AGC_SEND =>
 			mult_src1_n	<= abs(mult_out_c(46 downto 15));
 			mult_src2_n	<= abs(mult_out_c(46 downto 15));
+			add_src1_n 	<= (others => '0');
+			add_src2_n 	<= (others => '0');
 			agc_out_n 	<= mult_out_c(30 downto 15);
 			if delay_c = '0' then
 				delay_n <= not delay_c;
@@ -660,9 +677,14 @@ begin
 				state_n <= P_OUT;
 			end if;
 			
+		-- save power of output sample for comparison and weighting with next input sample	
 		when P_OUT =>
-			P_prev_n <= unsigned(mult_out_c(WIDTH-1 downto 0));
-			state_n <= HOLD;
+			mult_src1_n <= (others => '0');
+			mult_src2_n <= (others => '0');
+			add_src1_n 	<= (others => '0');
+			add_src2_n 	<= (others => '0');
+			P_prev_n 	<= unsigned(mult_out_c(WIDTH-1 downto 0));
+			state_n 	<= HOLD;
 
 	end case;
 	

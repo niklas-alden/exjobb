@@ -18,8 +18,8 @@ entity gain_lut is
 			i_R_enable 	: in std_logic;						-- enable signal from right channel AGC
 			i_L_dB 		: in std_logic_vector(7 downto 0);	-- power from left channel AGC
 			i_R_dB 		: in std_logic_vector(7 downto 0);	-- power from right channel AGC
-			o_L_gain 	: out std_logic_vector(15 downto 0);-- output gain to left channel AGC
-			o_R_gain 	: out std_logic_vector(15 downto 0)	-- output gain to right channel AGC
+			o_L_gain 	: out std_logic_vector(14 downto 0);-- output gain to left channel AGC
+			o_R_gain 	: out std_logic_vector(14 downto 0)	-- output gain to right channel AGC
 		);
 end gain_lut;
 
@@ -190,8 +190,8 @@ begin
 	end case;
 
 	-- return same gain to left and right channel AGC
-	o_L_gain <= gain_c;
-	o_R_gain <= gain_c;
+	o_L_gain <= gain_c(14 downto 0);
+	o_R_gain <= gain_c(14 downto 0);
 	
 end process;
 

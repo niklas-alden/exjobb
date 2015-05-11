@@ -15,7 +15,7 @@ use ieee.numeric_std.all;
 entity agc_optimized is
     Port ( 	clk 			: in std_logic; 					-- clock
 			rstn 			: in std_logic; 					-- reset, active low
-			i_sample 		: in std_logic_vector(15 downto 0); -- input sample from AC97
+			i_sample 		: in std_logic; -- input sample from AC97
 			i_start 		: in std_logic; 					-- start signal from AC97
 			i_gain 			: in std_logic_vector(14 downto 0);	-- gain fetched from LUT
 			o_power 		: out std_logic_vector(7 downto 0);	-- sample power to LUT
@@ -29,6 +29,7 @@ architecture Behavioral of agc_optimized is
 	
 	constant WIDTH 			: integer 	:= 32;	-- general register width
 	signal delay_c, delay_n : std_logic	:= '0';	-- one bit delay counter
+	signal input_cnt_c, input_cnt_n 	: unsigned(3 downto 0) := (others => '0');
 	
 	-- HIGH PASS FILTER
 	-- high pass filter coefficients
@@ -74,7 +75,7 @@ architecture Behavioral of agc_optimized is
 	signal add_out_c, add_out_n 	: signed(2*WIDTH-1 downto 0) 	:= (others => '0');
 		
 	-- states for FSM    
-	type state_type is (HOLD, HP_CALC1, HP_CALC2, HP_CALC3, HP_CALC4, 
+	type state_type is (HOLD, LATCH_IN_SAMPLE, HP_CALC1, HP_CALC2, HP_CALC3, HP_CALC4, 
 						EQ_CALC1, EQ_CALC2, EQ_CALC3, EQ_CALC4, EQ_CALC5, EQ_CALC6, FINISH_CALC,
 						P_CURR, P_COMP, P_W_1A, P_W_1B, P_W_2A, P_W_2B, P_W_3, P_dB, FETCH_GAIN, GAIN, AGC_SEND, P_OUT); 
 	signal state_c, state_n : state_type := HOLD;
@@ -107,6 +108,7 @@ begin
 		add_src2_c			<= (others => '0');
 		add_out_c			<= (others => '0');
 		delay_c				<= '0';
+		input_cnt_c			<= (others => '0');
 	elsif rising_edge(clk) then
 		state_c 			<= state_n;
 		hp_x_c 				<= hp_x_n;
@@ -129,12 +131,13 @@ begin
 		add_src2_c			<= add_src2_n;
 		add_out_c			<= add_out_n;
 		delay_c				<= delay_n;
+		input_cnt_c			<= input_cnt_n;
 	end if;
 end process;
 
 fsm_proc : process(	state_c, i_start, i_sample, hp_x_c, hp_x_prev_c, hp_y_prev_c, eq_x_c, eq_x_prev_c, eq_x_prev_prev_c,
 					eq_y_prev_c, eq_y_prev_prev_c, curr_sample_c, P_in_c, P_dB_c, i_gain, P_prev_c, agc_out_c,
-					mult_src1_c, mult_src2_c, mult_out_c, add_src1_c, add_src2_c, add_out_c, delay_c) is
+					mult_src1_c, mult_src2_c, mult_out_c, add_src1_c, add_src2_c, add_out_c, delay_c, input_cnt_c) is
 begin
 	-- default values
 	state_n				<= state_c;
@@ -158,6 +161,7 @@ begin
 	add_src2_n 			<= add_src2_c;
 	add_out_n			<= add_out_c;
 	delay_n				<= delay_c;
+	input_cnt_n			<= input_cnt_c;
 	o_sample 			<= std_logic_vector(agc_out_c); -- output sample
 	o_done				<= '0';
 	o_power 			<= std_logic_vector(P_dB_n); 	-- output power to LUT
@@ -171,10 +175,21 @@ begin
 		-- wait for start signal before latching input sample
 		when HOLD =>
 			if i_start = '1' then
-				hp_x_n	<= signed(i_sample);
-				state_n	<= HP_CALC1;
+				state_n	<= LATCH_IN_SAMPLE;
+			else
+				state_n <= HOLD;
 			end if;
-
+	
+		-- latch in serial input sample
+		when LATCH_IN_SAMPLE =>
+			hp_x_n(15 - to_integer(input_cnt_c))	<= i_sample;--signed(hp_x_c(15 downto 1) & i_sample);
+			input_cnt_n <= input_cnt_c + 1;
+			if input_cnt_c = 15 then
+				state_n <= HP_CALC1;
+			else
+				state_n <= LATCH_IN_SAMPLE;
+			end if;
+					
 		-- multiply current input sample with filter coefficient
 		when HP_CALC1 =>
 			mult_src1_n <= resize(hp_x_c, WIDTH);

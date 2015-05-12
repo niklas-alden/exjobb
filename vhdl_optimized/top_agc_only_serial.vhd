@@ -17,8 +17,8 @@ entity top is
 			i_R_sample	: in std_logic;
 			i_L_start	: in std_logic;
 			i_R_start	: in std_logic;
-			o_L_sample	: out std_logic_vector(15 downto 0);
-			o_R_sample	: out std_logic_vector(15 downto 0);
+			o_L_sample	: out std_logic;
+			o_R_sample	: out std_logic;
 			o_L_done	: out std_logic;
 			o_R_done	: out std_logic
 			);
@@ -26,7 +26,7 @@ end top;
 
 architecture Behavioral of top is
 
-component agc_optimized is
+component agc is
 		Port ( 	clk 			: in std_logic;
 				rstn 			: in std_logic;
 				i_sample		: in std_logic;
@@ -34,7 +34,7 @@ component agc_optimized is
 				i_gain 			: in std_logic_vector(14 downto 0);
 				o_gain_fetch 	: out std_logic;
 				o_power 		: out std_logic_vector(7 downto 0);
-				o_sample 		: out std_logic_vector(15 downto 0);
+				o_sample 		: out std_logic;
 				o_done			: out std_logic
 		);
 	end component;
@@ -73,7 +73,7 @@ begin
 ----------------------------------------------------------------------------------
 -- LEFT CHANNEL
 ----------------------------------------------------------------------------------
-	L_agc_inst : agc_optimized
+	L_agc_inst : agc
 		port map (
 			clk 			=> clk,
 			rstn 			=> rstn,
@@ -89,7 +89,7 @@ begin
 ----------------------------------------------------------------------------------
 -- RIGHT CHANNEL
 ----------------------------------------------------------------------------------
-	R_agc_inst : agc_optimized
+	R_agc_inst : agc
 		port map (
 			clk 			=> clk,
 			rstn 			=> rstn,

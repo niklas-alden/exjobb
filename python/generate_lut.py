@@ -5,11 +5,11 @@ def to_bin(val, nbit):
     leading_zeros = '{0:0' + str(nbit) + 'b}'
     return leading_zeros.format(val)
 
-gain_file = open('matlab_gain_lut_poly1.txt', 'r')
+gain_file = open('matlab_gain_lut_poly3_62dB.txt', 'r')
 g_lines = gain_file.readlines()
-ofile = open('gain_lut_py_poly1_bin.vhd', 'w')
+ofile = open('gain_lut_py_poly3_62dB_bin.vhd', 'w')
 
-limit = 62
+limit = 82
 n = len(g_lines) - (82 - limit)
 for line in reversed(g_lines):
     g = int(float(line) * (2**15))

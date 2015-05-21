@@ -40,21 +40,41 @@ function [gain] = agc_lut(~)
     lut(61:86, 3) = yy(61:86) ./ P_in(61:86);
     
     % dB polynomial 3, index 4
-    max1 = 62;
+    
+    max2 = 50;
     for i = 1:n
-        if i > max1
-            lut(i,4) = 10^(max1/10) / 10^(i/10);
+        if i > max2
+            lut(i,4) = 10^(max2/10) / 10^(i/10);
         end
     end
-    x_poly = [28 46 55 70];
-    y_poly = [40 46 52 13];
+    x_poly = [18 36 45 57];
+    y_poly = [30 36 42 7];
     p_coeff = polyfit(x_poly, y_poly, 3);
     yy = polyval(p_coeff, P_in);
-    lut(50:70, 4) = yy(50:70) ./ P_in(50:70);
+    lut(42:55, 4) = yy(42:55) ./ P_in(42:55);
     
+%     clf;
+%     plot(x_poly, y_poly, '*', P_in, P_in'.*lut(P_in,1), P_in, P_in'.*lut(P_in, 4))
+%     grid on;
+    
+%     
+%     max1 = 62;
+%     for i = 1:n
+%         if i > max1
+%             lut(i,4) = 10^(max1/10) / 10^(i/10);
+%         end
+%     end
+%     x_poly = [28 46 55 70];
+%     y_poly = [40 46 52 13];
+%     p_coeff = polyfit(x_poly, y_poly, 3);
+%     yy = polyval(p_coeff, P_in);
+%     lut(50:70, 4) = yy(50:70) ./ P_in(50:70);
+%     
 %     clf;
 %     plot(P_in, P_in'.*lut(P_in,1), P_in, P_in'.*lut(P_in, 4))
 %     grid on;
+
+
 %     for i = 1:n
 %         if i > max
 %             lut(i,4) = 10^(max/10) / 10^(i/10);
@@ -99,7 +119,7 @@ end
 % EXPORT TO FILE
 if 1 == 0
     export_curve = 4;
-    fileID = fopen('matlab_gain_lut_poly3_62dB.txt','wt');
+    fileID = fopen('matlab_gain_lut_poly3_50dB.txt','wt');
     fprintf(fileID, '%1.15f\n', lut(:,export_curve));
     fclose(fileID);
 end

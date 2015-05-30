@@ -1,5 +1,5 @@
 % %%
-function [gain] = agc_lut(~)
+function [gain] = agc_lut_dB(~)
     n = 100;
     P_in = 1:n;
 
@@ -28,16 +28,17 @@ function [gain] = agc_lut(~)
     
     
     % dB polynomial 2, index 3
+    max1 = 44;
     for i = 1:n
-        if i > max
-            lut(i,3) = 10^(max/10) / 10^(i/10);
+        if i > max1
+            lut(i,3) = 10^(max1/10) / 10^(i/10);
         end
     end
     x_poly = [40 55 70 90];
     y_poly = [35 55 60 20];
     p_coeff = polyfit(x_poly, y_poly, 2);
     yy = polyval(p_coeff, P_in);
-    lut(61:86, 3) = yy(61:86) ./ P_in(61:86);
+%     lut(61:86, 3) = yy(61:86) ./ P_in(61:86);
     
     % dB polynomial 3, index 4
     
@@ -53,6 +54,8 @@ function [gain] = agc_lut(~)
     yy = polyval(p_coeff, P_in);
     lut(42:55, 4) = yy(42:55) ./ P_in(42:55);
     
+    lut(1:95,4) = lut(6:end,4);
+    lut(96:end,4) = lut(96:end,3);
 %     clf;
 %     plot(x_poly, y_poly, '*', P_in, P_in'.*lut(P_in,1), P_in, P_in'.*lut(P_in, 4))
 %     grid on;

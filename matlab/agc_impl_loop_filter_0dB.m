@@ -1,19 +1,19 @@
 % clear all; 
 % clf;
-bits = 12;              % resolution of data
+bits = 16;              % resolution of data
 filter_bits = 10;       % resolution of filter coefficients
 % load handel; in = y(1:5000).*1; % input signal
 % in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
-in = audioread('Speech_all.wav'); in = in(39280:39300).*1;
+% in = audioread('Speech_all.wav'); in = in(39280:39300).*1;
 % in = audioread('p50_male.wav'); in = in(1:5e4).*1;
 % in = audioread('p50_female.wav'); in = in(1:5e4).*1;
 % in = ones(1,1200).*1e-4; in(50:600) = 1;
-% t = linspace(1,100,10000);
-% f = @(t,G) G.*sin(2.*pi.*2e3.*t);
-% in = [f(t(1:1000),0.01) f(t(1001:6000),1) f(t(6001:9000),0.01)];% f(t(5001:7000),0.6) f(t(7001:9000),1) f(t(9001:end),0.01)];
+t = linspace(1,100,10000);
+f = @(t,G) G.*sin(2.*pi.*2e3.*t);
+in = [f(t(1:1000),0.01) f(t(1001:6000),1) f(t(6001:9000),0.01)];% f(t(5001:7000),0.6) f(t(7001:9000),1) f(t(9001:end),0.01)];
 
 
-LUT = int16(agc_lut() .* 2^(16-1));         % Lookup table with gain values
+LUT = int16(agc_lut_dB() .* 2^(16-1));         % Lookup table with gain values
 P_prev = int32(0);                          % Previous power value of input signal (memory)
 
 % Arrays used for plotting, replace with single registers in hardware design
@@ -45,7 +45,7 @@ x_eq_pre = int32(0);
 x_eq_pre_pre = int32(0);
 
 % tune parameters
-alpha = int32(0.005 .* 2^(16-1));    % attack time ~ < 5ms
+alpha = int32(0.9 .* 2^(16-1));    % attack time ~ < 5ms
 beta  = int32(0.03 .* 2^(16-1));     % release time ~ 30-40ms
 
 for n = 1:length(in)

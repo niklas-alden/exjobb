@@ -54,8 +54,9 @@ function [gain] = agc_lut_dB(~)
     yy = polyval(p_coeff, P_in);
     lut(42:55, 4) = yy(42:55) ./ P_in(42:55);
     
-    lut(1:95,4) = lut(6:end,4);
-    lut(96:end,4) = lut(96:end,3);
+    offset = 4;
+    lut(1:(100-offset),4) = lut((offset+1):end,4);
+    lut((100-offset+1):end,4) = lut((100-offset+1):end,3);
 %     clf;
 %     plot(x_poly, y_poly, '*', P_in, P_in'.*lut(P_in,1), P_in, P_in'.*lut(P_in, 4))
 %     grid on;
@@ -120,9 +121,9 @@ if 1 == 1
 end
 
 % EXPORT TO FILE
-if 1 == 0
+if 1 == 1
     export_curve = 4;
-    fileID = fopen('matlab_gain_lut_poly3_50dB.txt','wt');
+    fileID = fopen('matlab_gain_lut_poly3_46dB.txt','wt');
     fprintf(fileID, '%1.15f\n', lut(:,export_curve));
     fclose(fileID);
 end

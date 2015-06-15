@@ -1,0 +1,71 @@
+#######################################################
+#                                                     #
+#  Encounter Command Logging File                     #
+#  Created on Wed May 13 14:52:56 2015                #
+#                                                     #
+#######################################################
+
+#@(#)CDS: Encounter v10.12-s181_1 (64bit) 07/28/2011 22:52 (Linux 2.6)
+#@(#)CDS: NanoRoute v10.12-s010 NR110720-1815/10_10_USR2-UB (database version 2.30, 124.2.1) {superthreading v1.15}
+#@(#)CDS: CeltIC v10.12-s013_1 (64bit) 07/27/2011 04:14:35 (Linux 2.6.9-89.0.19.ELsmp)
+#@(#)CDS: AAE 10.12-s001 (64bit) 07/28/2011 (Linux 2.6.9-89.0.19.ELsmp)
+#@(#)CDS: CTE 10.12-s010_1 (64bit) Jul 18 2011 22:58:43 (Linux 2.6.9-89.0.19.ELsmp)
+#@(#)CDS: CPE v10.12-s007
+
+fit
+clearGlobalNets
+globalNetConnect VDD -type pgpin -pin VDD -inst *
+globalNetConnect VDD -type tiehi -inst *
+globalNetConnect GND -type pgpin -pin GND -inst *
+globalNetConnect GND -type tielo -inst *
+getIoFlowFlag
+setIoFlowFlag 0
+floorPlan -site CORE -s 300 300 20 20 20 20
+uiSetTool select
+getIoFlowFlag
+fit
+selectInst Pcornerul
+selectInst PGNDo
+selectInst inpad_rstn
+selectInst PGNDc
+selectInst PGNDi
+spaceObject -fixSide left -space 36
+deselectAll
+selectInst Pcornerll
+selectInst PVCCi
+selectInst clkpad
+selectInst PVCCc
+selectInst PVCCo
+spaceObject -fixSide left -space 36
+deselectAll
+selectInst Pcornerul
+selectInst outpad_L_sample
+selectInst outpad_L_done
+selectInst inpad_L_sample
+selectInst inpad_L_start
+spaceObject -fixSide top -space 36
+deselectAll
+selectInst Pcornerur
+selectInst outpad_R_sample
+selectInst outpad_R_done
+selectInst inpad_R_sample
+selectInst inpad_R_start
+spaceObject -fixSide top -space 36
+deselectAll
+fit
+addRing -spacing_bottom 1 -width_left 3 -width_bottom 3 -width_top 3 -spacing_top 1 -layer_bottom M3 -stacked_via_top_layer AP -width_right 3 -around core -jog_distance 2.5 -offset_bottom 2 -layer_top M3 -threshold 2.5 -offset_left 2 -spacing_right 1 -spacing_left 1 -offset_right 2 -offset_top 2 -layer_right M4 -nets {GND VDD} -stacked_via_bottom_layer M1 -layer_left M4
+fit
+addStripe -block_ring_top_layer_limit M4 -max_same_layer_jog_length 6 -padcore_ring_bottom_layer_limit M2 -set_to_set_distance 100 -stacked_via_top_layer AP -padcore_ring_top_layer_limit M4 -spacing 1 -merge_stripes_value 2.5 -direction horizontal -layer M3 -block_ring_bottom_layer_limit M2 -width 3 -nets {GND VDD} -stacked_via_bottom_layer M1
+fit
+addStripe -block_ring_top_layer_limit M5 -max_same_layer_jog_length 6 -padcore_ring_bottom_layer_limit M3 -set_to_set_distance 100 -stacked_via_top_layer AP -padcore_ring_top_layer_limit M5 -spacing 1 -merge_stripes_value 2.5 -layer M4 -block_ring_bottom_layer_limit M3 -width 3 -nets {GND VDD} -stacked_via_bottom_layer M1
+fit
+addWellTap -cell HS65_LH_FILLERCELL4 -cellInterval 25 -prefix WELLTAP
+fit
+#setPrerouteAsObs {1 2 3 4 5 6 7 8}
+#setPlaceMode -fp false
+#placeDesign -prePlaceOpt
+addIoFiller -cell IOFILLER4_ST_SF_LIN -prefix IOFILLER -side n
+addIoFiller -cell IOFILLER4_ST_SF_LIN -prefix IOFILLER -side s
+addIoFiller -cell IOFILLER4_ST_SF_LIN -prefix IOFILLER -side w
+addIoFiller -cell IOFILLER4_ST_SF_LIN -prefix IOFILLER -side e
+fit

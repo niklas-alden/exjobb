@@ -2,7 +2,7 @@
 -- Engineer: 		Niklas Aldn
 -- 
 -- Create Date:    	09:54:51 03/20/2015 
--- Module Name:    	ac97_comb - Behavioral 
+-- Module Name:    	ac97_cmd - Behavioral 
 -- Project Name: 	Hardware implementation of AGC for active hearing protectors
 -- Description: 	Master Thesis
 --
@@ -11,7 +11,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity ac97_comb is
+entity ac97_cmd is
     Port ( clk 				: in std_logic; 					-- clock
            rstn 			: in std_logic; 					-- reset, active low
            i_ac97_ctrl_ready : in std_logic; 					-- controller ready for new control register address and data
@@ -19,9 +19,9 @@ entity ac97_comb is
            o_cmd_addr 		: out std_logic_vector(7 downto 0); -- codec control register address
            o_cmd_data 		: out std_logic_vector(15 downto 0) -- codec control register data
 		   );
-end ac97_comb;
+end ac97_cmd;
 
-architecture Behavioral of ac97_comb is
+architecture Behavioral of ac97_cmd is
 
 	signal cmd_c, cmd_n : std_logic_vector(23 downto 0) := (others => '0'); -- address and data
 	signal attenuation 	: std_logic_vector(4 downto 0) 	:= (others => '0'); -- attenuation for headphone output

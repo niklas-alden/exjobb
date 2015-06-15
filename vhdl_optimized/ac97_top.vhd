@@ -31,7 +31,7 @@ end ac97_top;
 
 architecture Behavioral of ac97_top is
 
-	component ac97_comb is
+	component ac97_cmd is
 		Port ( 	clk 				: in std_logic;
 				rstn 				: in std_logic;
 				i_ac97_ctrl_ready 	: in std_logic;
@@ -62,15 +62,15 @@ architecture Behavioral of ac97_top is
 				);
 	end component;
 	
--- COMBINATORIAL FSM -> CONTROLLER
+-- COMMAND -> CONTROLLER
 	signal cmd_addr_comb_ctrl 	: std_logic_vector(7 downto 0);
 	signal cmd_data_comb_ctrl 	: std_logic_vector(15 downto 0);
--- CONTROLLER -> COMBINATORIAL FSM
+-- CONTROLLER -> COMMAND
 	signal ready_ctrl_comb 		: std_logic;
 
 begin
 
-	ac97_comb_inst : ac97_comb
+	ac97_cmd_inst : ac97_cmd
 		port map (
 			clk 				=> clk,
 			rstn 				=> rstn,

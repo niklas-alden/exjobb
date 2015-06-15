@@ -20078,7 +20078,7 @@ x"13e00"-- 5088
 BEGIN
  
 	-- Instantiate the Unit Under Test (UUT)
-   uut: top_optimized PORT MAP (
+   uut: top PORT MAP (
           clk => clk,
           rstn => rstn,
           i_volume => i_volume,

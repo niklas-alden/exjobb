@@ -1,9 +1,9 @@
 ----------------------------------------------------------------------------------
 -- Engineer: 		Niklas Aldén
 -- 
--- Create Date:   	19:51:23 05/11/2015 
+-- Create Date:   	13:51:53 04/21/2015 
 -- Design Name: 
--- Module Name:    	agc - Behavioral 
+-- Module Name:    	agc_optimized - Behavioral 
 -- Project Name: 	Hardware implementation of AGC for active hearing protectors
 -- Description: 	Master Thesis
 --
@@ -12,24 +12,23 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity agc is
+entity agc_optimized is
     Port ( 	clk 			: in std_logic; 					-- clock
 			rstn 			: in std_logic; 					-- reset, active low
-			i_sample 		: in std_logic; -- input sample from AC97
+			i_sample 		: in std_logic_vector(15 downto 0); -- input sample from AC97
 			i_start 		: in std_logic; 					-- start signal from AC97
 			i_gain 			: in std_logic_vector(14 downto 0);	-- gain fetched from LUT
 			o_power 		: out std_logic_vector(7 downto 0);	-- sample power to LUT
 			o_gain_fetch 	: out std_logic;					-- enable signal for LUT
-			o_sample 		: out std_logic;--_vector(15 downto 0);-- output sample to equalizer filter
+			o_sample 		: out std_logic_vector(15 downto 0);-- output sample to equalizer filter
 			o_done			: out std_logic
 			);
-end agc;
+end agc_optimized;
 
-architecture Behavioral of agc is
+architecture Behavioral of agc_optimized is
 	
-	constant WIDTH 					: integer 				:= 32;				-- general register width
-	signal delay_c, delay_n 		: std_logic				:= '0';				-- one bit delay counter
-	signal inout_cnt_c, inout_cnt_n : unsigned(3 downto 0) 	:= (others => '0'); -- counter for latching input and output sample
+	constant WIDTH 			: integer 	:= 32;	-- general register width
+	signal delay_c, delay_n : std_logic	:= '0';	-- one bit delay counter
 	
 	-- HIGH PASS FILTER
 	-- high pass filter coefficients
@@ -57,8 +56,8 @@ architecture Behavioral of agc is
 	
 	-- AGC
 	-- time parameters
-	constant alpha 	: unsigned(15 downto 0) := to_unsigned(29490, WIDTH/2); -- attack time
-	constant beta 	: unsigned(15 downto 0) := to_unsigned(3, WIDTH/2); -- release time
+	constant alpha 	: unsigned(15 downto 0) := to_unsigned(164, WIDTH/2); -- attack time
+	constant beta 	: unsigned(15 downto 0) := to_unsigned(983, WIDTH/2); -- release time
 	
 	signal curr_sample_c, curr_sample_n : signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- current input sample
 	signal P_in_c, P_in_n 				: unsigned(WIDTH-1 downto 0)	:= (others => '0'); -- power of input sample
@@ -75,10 +74,9 @@ architecture Behavioral of agc is
 	signal add_out_c, add_out_n 	: signed(2*WIDTH-1 downto 0) 	:= (others => '0');
 		
 	-- states for FSM    
-	type state_type is (HOLD, LATCH_IN_SAMPLE, HP_CALC1, HP_CALC2, HP_CALC3, HP_CALC4, 
+	type state_type is (HOLD, HP_CALC1, HP_CALC2, HP_CALC3, HP_CALC4, 
 						EQ_CALC1, EQ_CALC2, EQ_CALC3, EQ_CALC4, EQ_CALC5, EQ_CALC6, FINISH_CALC,
-						P_CURR, P_COMP, P_W_1A, P_W_1B, P_W_2A, P_W_2B, P_W_3, P_dB, FETCH_GAIN,
-						GAIN, P_OUT, LATCH_OUT_SAMPLE); 
+						P_CURR, P_COMP, P_W_1A, P_W_1B, P_W_2A, P_W_2B, P_W_3, P_dB, FETCH_GAIN, GAIN, AGC_SEND, P_OUT); 
 	signal state_c, state_n : state_type := HOLD;
 	
 begin
@@ -109,7 +107,6 @@ begin
 		add_src2_c			<= (others => '0');
 		add_out_c			<= (others => '0');
 		delay_c				<= '0';
-		inout_cnt_c			<= (others => '0');
 	elsif rising_edge(clk) then
 		state_c 			<= state_n;
 		hp_x_c 				<= hp_x_n;
@@ -132,13 +129,12 @@ begin
 		add_src2_c			<= add_src2_n;
 		add_out_c			<= add_out_n;
 		delay_c				<= delay_n;
-		inout_cnt_c			<= inout_cnt_n;
 	end if;
 end process;
 
 fsm_proc : process(	state_c, i_start, i_sample, hp_x_c, hp_x_prev_c, hp_y_prev_c, eq_x_c, eq_x_prev_c, eq_x_prev_prev_c,
 					eq_y_prev_c, eq_y_prev_prev_c, curr_sample_c, P_in_c, P_dB_c, i_gain, P_prev_c, agc_out_c,
-					mult_src1_c, mult_src2_c, mult_out_c, add_src1_c, add_src2_c, add_out_c, delay_c, inout_cnt_c) is
+					mult_src1_c, mult_src2_c, mult_out_c, add_src1_c, add_src2_c, add_out_c, delay_c) is
 begin
 	-- default values
 	state_n				<= state_c;
@@ -162,9 +158,8 @@ begin
 	add_src2_n 			<= add_src2_c;
 	add_out_n			<= add_out_c;
 	delay_n				<= delay_c;
-	inout_cnt_n			<= inout_cnt_c;
+	o_sample 			<= std_logic_vector(agc_out_c); -- output sample
 	o_done				<= '0';
-	o_sample			<= '0';
 	o_power 			<= std_logic_vector(P_dB_n); 	-- output power to LUT
 	o_gain_fetch 		<= '0'; 						-- don't enable LUT
 
@@ -176,21 +171,10 @@ begin
 		-- wait for start signal before latching input sample
 		when HOLD =>
 			if i_start = '1' then
-				state_n	<= LATCH_IN_SAMPLE;
-			else
-				state_n <= HOLD;
+				hp_x_n	<= signed(i_sample);
+				state_n	<= HP_CALC1;
 			end if;
-	
-		-- latch in serial input sample
-		when LATCH_IN_SAMPLE =>
-			hp_x_n(15 - to_integer(inout_cnt_c))	<= i_sample;--signed(hp_x_c(15 downto 1) & i_sample);
-			inout_cnt_n <= inout_cnt_c + 1;
-			if inout_cnt_c = 15 then
-				state_n <= HP_CALC1;
-			else
-				state_n <= LATCH_IN_SAMPLE;
-			end if;
-					
+
 		-- multiply current input sample with filter coefficient
 		when HP_CALC1 =>
 			mult_src1_n <= resize(hp_x_c, WIDTH);
@@ -378,7 +362,7 @@ begin
 		
 		-- increasing power, weigh against previous sample
 		when P_W_1A =>
-			mult_src1_n	<= resize(signed(32768 - alpha), WIDTH);
+			mult_src1_n	<= resize(signed(32768 - alpha), WIDTH); -- 32768 - alpha(164) = 32604
 			mult_src2_n	<= signed(P_prev_c);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
@@ -392,7 +376,7 @@ begin
 		
 		-- decreasing power, weigh against previous sample
 		when P_W_1B =>
-			mult_src1_n <= resize(signed(32768 - beta), WIDTH);
+			mult_src1_n <= resize(signed(32768 - beta), WIDTH); -- 32768 - beta(983) = 31785
 			mult_src2_n	<= signed(P_prev_c);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
@@ -677,11 +661,11 @@ begin
 				state_n <= GAIN;
 			else
 				delay_n <= '0';
-				state_n <= P_OUT;
+				state_n <= AGC_SEND;
 			end if;
 		
-		-- calculate power of output sample 
-		when P_OUT =>
+		-- output processed sample and calculate power of output sample 
+		when AGC_SEND =>
 			mult_src1_n	<= abs(mult_out_c(46 downto 15));
 			mult_src2_n	<= abs(mult_out_c(46 downto 15));
 			add_src1_n 	<= (others => '0');
@@ -689,30 +673,21 @@ begin
 			agc_out_n 	<= mult_out_c(30 downto 15);
 			if delay_c = '0' then
 				delay_n <= '1';
-				state_n <= P_OUT;
+				state_n <= AGC_SEND;
 			else
 				delay_n <= '0';
-				state_n <= LATCH_OUT_SAMPLE;
+				state_n <= P_OUT;
 			end if;
 			
-		-- save power of output sample for comparison and weighting with next input sample
-		-- latch out processed sample and signal when done
-		when LATCH_OUT_SAMPLE =>
+		-- save power of output sample for comparison and weighting with next input sample	
+		when P_OUT =>
 			mult_src1_n <= (others => '0');
 			mult_src2_n <= (others => '0');
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
-			inout_cnt_n <= inout_cnt_c + 1;
-			o_sample	<= agc_out_c(15 - to_integer(inout_cnt_c));
-			if inout_cnt_c = 0 then
-				P_prev_n 	<= unsigned(mult_out_c(WIDTH-1 downto 0));
-				state_n		<= LATCH_OUT_SAMPLE;
-			elsif inout_cnt_c = 15 then
-				o_done		<= '1';
-				state_n		<= HOLD;
-			else
-				state_n 	<= LATCH_OUT_SAMPLE;
-			end if;
+			P_prev_n 	<= unsigned(mult_out_c(WIDTH-1 downto 0));
+			o_done		<= '1';
+			state_n 	<= HOLD;
 
 	end case;
 	

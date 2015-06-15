@@ -32,10 +32,10 @@ USE ieee.std_logic_1164.ALL;
 -- arithmetic functions with Signed or Unsigned values
 --USE ieee.numeric_std.ALL;
  
-ENTITY tb_top IS
-END tb_top;
+ENTITY tb_top_parallel IS
+END tb_top_parallel;
  
-ARCHITECTURE behavior OF tb_top IS 
+ARCHITECTURE behavior OF tb_top_parallel IS 
  
     -- Component Declaration for the Unit Under Test (UUT)
  

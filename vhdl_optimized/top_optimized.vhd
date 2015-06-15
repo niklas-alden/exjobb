@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------------
 -- Engineer: 		Niklas Aldén
 -- 
--- Create Date:    	11:47:44 03/28/2015 
+-- Create Date:    	17:45:14 04/22/2015 
 -- Module Name:    	top - Behavioral 
 -- Project Name: 	Hardware implementation of AGC for active hearing protectors
 -- Description: 	Master Thesis
@@ -10,7 +10,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity top_optimized is
+entity top is
     Port ( 	clk 		: in std_logic;
 			rstn 		: in std_logic;
 			i_volume 	: in std_logic_vector(4 downto 0);
@@ -21,14 +21,12 @@ entity top_optimized is
 			i_BIT_CLK 	: in std_logic--;
 --		   led_test : out std_logic_vector(15 downto 0)
 			);
-end top_optimized;
+end top;
 
-architecture Behavioral of top_optimized is
+architecture Behavioral of top is
 
 	component bit_clock_invert is
-		Port ( 	--clk 			: in std_logic;
-				--rstn 			: in std_logic;
-				i_bit_clk 		: in std_logic;
+		Port ( 	i_bit_clk 		: in std_logic;
 				o_inv_clk 		: out std_logic
 				);
 	end component;
@@ -76,17 +74,11 @@ architecture Behavioral of top_optimized is
 			);
 	end component;
 
--- CLOCK FALLING -> AC97 TOP
+-- INV BIT CLOCK -> AC97 TOP
 	signal invert_bit_clk_ac97					: std_logic;
--- AC97 -> HIGH PASS FILTER
+-- AC97 -> AGC
 	signal L_sample_ac97_agc, R_sample_ac97_agc 	: std_logic_vector(15 downto 0);
 	signal L_start_ac97_agc, R_start_ac97_agc 	: std_logic;
----- HIGH PASS FITLER -> EQUALIZER FILTER
---	signal L_sample_hp_eq, R_sample_hp_eq 		: std_logic_vector(15 downto 0);
---	signal L_start_hp_eq, R_start_hp_eq 		: std_logic;
----- EQUALIZER FILTER -> AGC
---	signal L_sample_eq_agc, R_sample_eq_agc 	: std_logic_vector(15 downto 0);
---	signal L_start_eq_agc, R_start_eq_agc 		: std_logic;
 -- AGC <-> GAIN LUT
 	signal L_power_agc_lut, R_power_agc_lut 	: std_logic_vector(7 downto 0);
 	signal L_gain_lut_agc, R_gain_lut_agc 		: std_logic_vector(15 downto 0);
@@ -101,8 +93,6 @@ begin
 
 	bit_clk_inv_inst : bit_clock_invert 
 		port map( 
---			clk 			=> clk,
---			rstn 			=> rstn,
 			i_bit_clk 		=> i_BIT_CLK,
 			o_inv_clk 		=> invert_bit_clk_ac97
 			);

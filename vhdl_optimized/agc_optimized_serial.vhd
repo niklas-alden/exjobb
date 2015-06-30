@@ -57,8 +57,8 @@ architecture Behavioral of agc is
 	
 	-- AGC
 	-- time parameters
-	constant alpha 	: unsigned(15 downto 0) := to_unsigned(29490, WIDTH/2); -- attack time
-	constant beta 	: unsigned(15 downto 0) := to_unsigned(3, WIDTH/2); -- release time
+	constant alpha 	: unsigned(15 downto 0) := to_unsigned(164, WIDTH/2); -- attack time
+	constant beta 	: unsigned(15 downto 0) := to_unsigned(983, WIDTH/2); -- release time
 	
 	signal curr_sample_c, curr_sample_n : signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- current input sample
 	signal P_in_c, P_in_n 				: unsigned(WIDTH-1 downto 0)	:= (others => '0'); -- power of input sample
@@ -378,7 +378,7 @@ begin
 		
 		-- increasing power, weigh against previous sample
 		when P_W_1A =>
-			mult_src1_n	<= resize(signed(32768 - alpha), WIDTH);
+			mult_src1_n	<= resize(signed(32767 - alpha), WIDTH); -- 32768 - alpha(164) = 32604
 			mult_src2_n	<= signed(P_prev_c);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
@@ -392,7 +392,7 @@ begin
 		
 		-- decreasing power, weigh against previous sample
 		when P_W_1B =>
-			mult_src1_n <= resize(signed(32768 - beta), WIDTH);
+			mult_src1_n <= resize(signed(32767 - beta), WIDTH); -- 32768 - beta(983) = 31785
 			mult_src2_n	<= signed(P_prev_c);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
@@ -448,21 +448,8 @@ begin
 		
 		-- convert the weighted power to decibel 
 		when P_dB =>
-			if unsigned(add_out_c(46 downto 15)) > x"2133a19c6" then -- >99.5dB
-				P_dB_n <= to_signed(18, 8);
-			elsif unsigned(add_out_c(46 downto 15)) > x"1a5f7f434" then -- >98.5dB
-				P_dB_n <= to_signed(17, 8);
-			elsif unsigned(add_out_c(46 downto 15)) > x"14f2e7a04" then -- >97.5dB
-				P_dB_n <= to_signed(16, 8);
-			elsif unsigned(add_out_c(46 downto 15)) > x"10a3e81d2" then -- >96.5dB
-				P_dB_n <= to_signed(15, 8);
-			elsif unsigned(add_out_c(46 downto 15)) > x"d37c3a05" then -- >95.5dB
-				P_dB_n <= to_signed(14, 8);
-			elsif unsigned(add_out_c(46 downto 15)) > x"a7fd1c54" then -- >94.5dB
-				P_dB_n <= to_signed(13, 8);
-			elsif unsigned(add_out_c(46 downto 15)) > x"85702c73" then -- >93.5dB
-				P_dB_n <= to_signed(12, 8);
-			elsif unsigned(add_out_c(46 downto 15)) > x"69fe63f3" then -- >92.5dB
+
+			if unsigned(add_out_c(46 downto 15)) > x"69fe63f3" then -- >92.5dB
 				P_dB_n <= to_signed(11, 8);
 			elsif unsigned(add_out_c(46 downto 15)) > x"54319cc9" then -- >91.5dB
 				P_dB_n <= to_signed(10, 8);
@@ -574,74 +561,7 @@ begin
 				P_dB_n <= to_signed(-43, 8);
 			elsif unsigned(add_out_c(30 downto 15)) > x"15f8" then -- >37.5dB
 				P_dB_n <= to_signed(-44, 8);
-			elsif unsigned(add_out_c(30 downto 15)) > x"1173" then -- >36.5dB
-				P_dB_n <= to_signed(-45, 8);
-			elsif unsigned(add_out_c(26 downto 15)) > x"ddd" then -- >35.5dB
-				P_dB_n <= to_signed(-46, 8);
-			elsif unsigned(add_out_c(26 downto 15)) > x"b03" then -- >34.5dB
-				P_dB_n <= to_signed(-47, 8);
-			elsif unsigned(add_out_c(26 downto 15)) > x"8bf" then -- >33.5dB
-				P_dB_n <= to_signed(-48, 8);
-			elsif unsigned(add_out_c(26 downto 15)) > x"6f3" then -- >32.5dB
-				P_dB_n <= to_signed(-49, 8);
-			elsif unsigned(add_out_c(26 downto 15)) > x"585" then -- >31.5dB
-				P_dB_n <= to_signed(-50, 8);
-			elsif unsigned(add_out_c(26 downto 15)) > x"463" then -- >30.5dB
-				P_dB_n <= to_signed(-51, 8);
-			elsif unsigned(add_out_c(26 downto 15)) > x"37c" then -- >29.5dB
-				P_dB_n <= to_signed(-52, 8);
-			elsif unsigned(add_out_c(26 downto 15)) > x"2c4" then -- >28.5dB
-				P_dB_n <= to_signed(-53, 8);
-			elsif unsigned(add_out_c(26 downto 15)) > x"233" then -- >27.5dB
-				P_dB_n <= to_signed(-54, 8);
-			elsif unsigned(add_out_c(26 downto 15)) > x"1bf" then -- >26.5dB
-				P_dB_n <= to_signed(-55, 8);
-			elsif unsigned(add_out_c(26 downto 15)) > x"163" then -- >25.5dB
-				P_dB_n <= to_signed(-56, 8);
-			elsif unsigned(add_out_c(26 downto 15)) > x"11a" then -- >24.5dB
-				P_dB_n <= to_signed(-57, 8);
-			elsif unsigned(add_out_c(22 downto 15)) > x"e0" then -- >23.5dB
-				P_dB_n <= to_signed(-58, 8);
-			elsif unsigned(add_out_c(22 downto 15)) > x"b2" then -- >22.5dB
-				P_dB_n <= to_signed(-59, 8);
-			elsif unsigned(add_out_c(22 downto 15)) > x"8e" then -- >21.5dB
-				P_dB_n <= to_signed(-60, 8);
-			elsif unsigned(add_out_c(22 downto 15)) > x"71" then -- >20.5dB
-				P_dB_n <= to_signed(-61, 8);
-			elsif unsigned(add_out_c(22 downto 15)) > x"5a" then -- >19.5dB
-				P_dB_n <= to_signed(-62, 8);
-			elsif unsigned(add_out_c(22 downto 15)) > x"47" then -- >18.5dB
-				P_dB_n <= to_signed(-63, 8);
-			elsif unsigned(add_out_c(22 downto 15)) > x"39" then -- >17.5dB
-				P_dB_n <= to_signed(-64, 8);
-			elsif unsigned(add_out_c(22 downto 15)) > x"2d" then -- >16.5dB
-				P_dB_n <= to_signed(-65, 8);
-			elsif unsigned(add_out_c(22 downto 15)) > x"24" then -- >15.5dB
-				P_dB_n <= to_signed(-66, 8);
-			elsif unsigned(add_out_c(22 downto 15)) > x"1d" then -- >14.5dB
-				P_dB_n <= to_signed(-67, 8);
-			elsif unsigned(add_out_c(22 downto 15)) > x"17" then -- >13.5dB
-				P_dB_n <= to_signed(-68, 8);
-			elsif unsigned(add_out_c(22 downto 15)) > x"12" then -- >12.5dB
-				P_dB_n <= to_signed(-69, 8);
-			elsif unsigned(add_out_c(18 downto 15)) > x"f" then -- >11.5dB
-				P_dB_n <= to_signed(-70, 8);
-			elsif unsigned(add_out_c(18 downto 15)) > x"c" then -- >10.5dB
-				P_dB_n <= to_signed(-71, 8);
-			elsif unsigned(add_out_c(18 downto 15)) > x"9" then -- >9.5dB
-				P_dB_n <= to_signed(-72, 8);
-			elsif unsigned(add_out_c(18 downto 15)) > x"7" then -- >8.5dB
-				P_dB_n <= to_signed(-73, 8);
-			elsif unsigned(add_out_c(18 downto 15)) > x"6" then -- >7.5dB
-				P_dB_n <= to_signed(-74, 8);
-			elsif unsigned(add_out_c(18 downto 15)) > x"5" then -- >6.5dB
-				P_dB_n <= to_signed(-75, 8);
-			elsif unsigned(add_out_c(18 downto 15)) > x"4" then -- >6dB
-				P_dB_n <= to_signed(-76, 8);
-			elsif unsigned(add_out_c(18 downto 15)) > x"3" then -- >4.5dB
-				P_dB_n <= to_signed(-77, 8);
-			elsif unsigned(add_out_c(18 downto 15)) > x"2" then -- >3dB
-				P_dB_n <= to_signed(-79, 8);
+			
 			else												-- >=0dB
 				P_dB_n <= to_signed(-82, 8);
 			end if;			

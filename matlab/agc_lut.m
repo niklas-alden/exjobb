@@ -83,7 +83,7 @@ if 1 == 1
 end
 
 % EXPORT TO FILE
-if 1 == 1
+if 1 == 0
     export_curve = 6;
     fileID = fopen('matlab_gain_lut.txt','wt');
     fprintf(fileID, '%1.15f\n', lut(:,export_curve));

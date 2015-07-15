@@ -33,9 +33,9 @@ architecture Behavioral of agc is
 	
 	-- HIGH PASS FILTER
 	-- high pass filter coefficients
-	constant hp_b_0 : signed(WIDTH/2-1 downto 0) := to_signed(504, WIDTH/2);
-	constant hp_b_1 : signed(WIDTH/2-1 downto 0) := to_signed(-504,WIDTH/2);
-	constant hp_a_1 : signed(WIDTH/2-1 downto 0) := to_signed(496, WIDTH/2); -- OBS changed sign
+	constant hp_b_0 : signed(WIDTH/2-1 downto 0) := to_signed(32250, WIDTH/2);--504, WIDTH/2);--
+	constant hp_b_1 : signed(WIDTH/2-1 downto 0) := to_signed(-32250,WIDTH/2);-- -504, WIDTH/2);--
+	constant hp_a_1 : signed(WIDTH/2-1 downto 0) := to_signed(31736, WIDTH/2); --496, WIDTH/2);-- OBS changed sign --
 	
 	signal hp_x_c, hp_x_n 			: signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- current input sample
 	signal hp_x_prev_c, hp_x_prev_n : signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- previous input sample
@@ -43,11 +43,11 @@ architecture Behavioral of agc is
 	
 	-- EQUALIZER FILTER
 	-- equalizer filter coefficients
-	constant eq_b_0 : signed(WIDTH-1 downto 0) := to_signed(55484, WIDTH);
-	constant eq_b_1 : signed(WIDTH-1 downto 0) := to_signed(-313, WIDTH);
-	constant eq_b_2 : signed(WIDTH-1 downto 0) := to_signed(-55123, WIDTH);
-	constant eq_a_1 : signed(WIDTH-1 downto 0) := to_signed(313, WIDTH); 	-- OBS changed sign
-	constant eq_a_2 : signed(WIDTH-1 downto 0) := to_signed(151, WIDTH); 	-- OBS changed sign
+	constant eq_b_0 : signed(WIDTH-1 downto 0) := to_signed(3551068, WIDTH);--55484, WIDTH);--
+	constant eq_b_1 : signed(WIDTH-1 downto 0) := to_signed(-20015, WIDTH);	-- -313, WIDTH);--
+	constant eq_b_2 : signed(WIDTH-1 downto 0) := to_signed(-3527803, WIDTH);-- -55123, WIDTH);--
+	constant eq_a_1 : signed(WIDTH-1 downto 0) := to_signed(20015, WIDTH); 	--313, WIDTH);-- OBS changed sign --
+	constant eq_a_2 : signed(WIDTH-1 downto 0) := to_signed(9657, WIDTH); 	--151, WIDTH);-- OBS changed sign --
 	
 	signal eq_x_c, eq_x_n 						: signed(WIDTH-1 downto 0) 	:= (others => '0'); -- current input sample
 	signal eq_x_prev_c, eq_x_prev_n 			: signed(WIDTH-1 downto 0) 	:= (others => '0'); -- previous input sample
@@ -57,8 +57,8 @@ architecture Behavioral of agc is
 	
 	-- AGC
 	-- time parameters
-	constant alpha 	: unsigned(15 downto 0) := to_unsigned(164, WIDTH/2); -- attack time
-	constant beta 	: unsigned(15 downto 0) := to_unsigned(983, WIDTH/2); -- release time
+	constant alpha 	: unsigned(15 downto 0) := to_unsigned(29490, WIDTH/2); -- attack time
+	constant beta 	: unsigned(15 downto 0) := to_unsigned(3, WIDTH/2); -- release time
 	
 	signal curr_sample_c, curr_sample_n : signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- current input sample
 	signal P_in_c, P_in_n 				: unsigned(WIDTH-1 downto 0)	:= (others => '0'); -- power of input sample
@@ -183,8 +183,8 @@ begin
 	
 		-- latch in serial input sample
 		when LATCH_IN_SAMPLE =>
-			hp_x_n(15 - to_integer(inout_cnt_c))	<= i_sample;--signed(hp_x_c(15 downto 1) & i_sample);
-			inout_cnt_n <= inout_cnt_c + 1;
+			hp_x_n(15 - to_integer(inout_cnt_c)) 	<= i_sample;
+			inout_cnt_n 							<= inout_cnt_c + 1;
 			if inout_cnt_c = 15 then
 				state_n <= HP_CALC1;
 			else
@@ -209,7 +209,7 @@ begin
 		when HP_CALC2 =>
 			mult_src1_n <= resize(hp_x_prev_c, WIDTH);
 			mult_src2_n <= resize(hp_b_1, WIDTH);
-			add_src1_n 	<= mult_out_c;
+			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -223,7 +223,7 @@ begin
 		when HP_CALC3 =>
 			mult_src1_n <= resize(hp_y_prev_c, WIDTH);
 			mult_src2_n <= resize(hp_a_1, WIDTH);
-			add_src1_n 	<= mult_out_c;
+			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -237,7 +237,7 @@ begin
 		when HP_CALC4 =>
 			mult_src1_n <= (others => '0');
 			mult_src2_n <= (others => '0');
-			add_src1_n 	<= mult_out_c;
+			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -254,9 +254,9 @@ begin
 		-- multiply current input sample with filter coefficient
 		when EQ_CALC1 =>
 			hp_x_prev_n <= hp_x_c;
-			hp_y_prev_n <= add_out_c(24 downto 9);
-			eq_x_n		<= resize(add_out_c(WIDTH-1 downto 9), WIDTH);
-			mult_src1_n <= resize(add_out_c(WIDTH-1 downto 9), WIDTH);
+			hp_y_prev_n <= add_out_c(WIDTH/2-1 downto 0); --add_out_c(30 downto 15); --add_out_c(24 downto 9); --
+			eq_x_n		<= add_out_c(WIDTH-1 downto 0); --resize(add_out_c(46 downto 15), WIDTH); --resize(add_out_c(WIDTH-1 downto 9), WIDTH); --
+			mult_src1_n <= add_out_c(WIDTH-1 downto 0); --resize(add_out_c(46 downto 15), WIDTH); --resize(add_out_c(WIDTH-1 downto 9), WIDTH); --
 			mult_src2_n <= eq_b_0;
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
@@ -272,7 +272,7 @@ begin
 		when EQ_CALC2 =>
 			mult_src1_n <= eq_x_prev_c;
 			mult_src2_n <= eq_b_1;
-			add_src1_n 	<= mult_out_c;
+			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -286,8 +286,8 @@ begin
 		when EQ_CALC3 =>
 			mult_src1_n <= eq_x_prev_prev_c;
 			mult_src2_n <= eq_b_2;
-			add_src1_n 	<= add_out_c;
-			add_src2_n 	<= mult_out_c;
+			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= EQ_CALC3;
@@ -300,8 +300,8 @@ begin
 		when EQ_CALC4 =>
 			mult_src1_n <= eq_y_prev_c;
 			mult_src2_n <= eq_a_1;
-			add_src1_n 	<= add_out_c;
-			add_src2_n 	<= mult_out_c;
+			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= EQ_CALC4;
@@ -314,8 +314,8 @@ begin
 		when EQ_CALC5 =>
 			mult_src1_n <= eq_y_prev_prev_c;
 			mult_src2_n <= eq_a_2;
-			add_src1_n 	<= add_out_c;
-			add_src2_n 	<= mult_out_c;
+			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= EQ_CALC5;
@@ -328,8 +328,8 @@ begin
 		when EQ_CALC6 =>
 			mult_src1_n <= (others => '0');
 			mult_src2_n <= (others => '0');
-			add_src1_n 	<= add_out_c;
-			add_src2_n 	<= mult_out_c;
+			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= EQ_CALC6;
@@ -343,9 +343,9 @@ begin
 		when FINISH_CALC =>
 			eq_x_prev_n			<= eq_x_c;
 			eq_x_prev_prev_n	<= eq_x_prev_c;
-			eq_y_prev_n			<= add_out_c(40 downto 9);
+			eq_y_prev_n			<= add_out_c(WIDTH-1 downto 0); --add_out_c(46 downto 15); --add_out_c(40 downto 9); --
 			eq_y_prev_prev_n	<= eq_y_prev_c;			
-			curr_sample_n		<= add_out_c(31 downto 16);
+			curr_sample_n		<= add_out_c(22 downto 7); --add_out_c(31 downto 16);--
 			state_n				<= P_CURR;
 			
 ----------------------------------------------------------------------------------			

@@ -1,13 +1,13 @@
 % clear all; 
 clf;
-% load handel; in = y(1:5000).*1; % input signal
+load handel; in = y(1:end).*1; % input signal
 % in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
-in = audioread('Speech_all.wav'); in = in(1:end).*1;
+% in = audioread('Speech_all.wav'); in = in(1:end).*1;
 % in = audioread('p50_male.wav'); in = in(1:5e4).*1;
 % in = audioread('p50_female.wav'); in = in(1:5e4).*1;
 % in = ones(1,1200).*1e-4; in(50:600) = 1;
 
-LUT = agc_lut();
+LUT = agc_lut_dB();
 P_prev = 0;
 
 % Arrays used for plotting, replace with single registers in hardware design
@@ -32,15 +32,15 @@ x_eq_pre = 0;
 x_eq_pre_pre = 0;
 
 % tune parameters
-alpha = 0.005;
+alpha = 0.9;
 beta = 0.03;
 
 for n = 1:length(in)
     % ----- HIGH PASS FILTER -----
     in_hp(n) = -A_hp(2) * y_hp_pre...
-              + B_hp(1) * in(n) * 2^15 ...
+              + B_hp(1) * in(n) ...
               + B_hp(2) * x_hp_pre;
-    x_hp_pre = in(n) * 2^15;
+    x_hp_pre = in(n);
     y_hp_pre = in_hp(n);
     
     % ----- EQUALIZER FILTER -----
@@ -66,14 +66,14 @@ for n = 1:length(in)
     end
     
     if P_tmp > 1
-        P(n) = 10*log10(P_tmp);% - 82;
+        P(n) = 10*log10(P_tmp) - 82;
     else
-        P(n) = 0;%-82;
+        P(n) = -82;
     end
     
     if round(P(n)) > 0
-        out_agc(n) = in_filtered(n) * LUT(round(P(n)));% + 82);
-        gain_used(n) = LUT(round(P(n)));% + 82);
+        out_agc(n) = in_filtered(n) * LUT(round(P(n)) + 82);
+        gain_used(n) = LUT(round(P(n)) + 82);
     else
         out_agc(n) = in_filtered(n);
         gain_used(n) = 1;
@@ -81,7 +81,7 @@ for n = 1:length(in)
     
     P_prev = abs(out_agc(n)) ^ 2;
     
-    out(n) = out_agc(n) / 2^15;
+    out(n) = out_agc(n);
 end
 
 % figure(1)

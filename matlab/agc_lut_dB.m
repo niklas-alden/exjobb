@@ -99,7 +99,7 @@ function [gain] = agc_lut_dB(~)
     gain = lut(:,4);
 
 % PLOT
-if 1 == 1
+if 1 == 0
     clf;
     figure(2)
 %     subplot(211)
@@ -120,7 +120,7 @@ if 1 == 1
 %     ylabel('gain')
     
     % plot for report
-    plot(P_in, 10.*log10((10.^(P_in./10))'.*(lut(P_in,4))), 'b', 'LineWidth', 2)
+    plot(P_in, 10.*log10((10.^(P_in./10))'.*(lut(P_in,4))), 'b--', 'LineWidth', 2)
     hold on
     plot(P_in, 10.*log10((10.^(P_in./10))'.*(lut(P_in,3))), 'r')
     grid on

@@ -6,7 +6,7 @@ in = y(1:10);
 % in = rand(10000, 1);
 % in = in(1:10)
 
-max_bits = 32;
+max_bits = 16;
 variance = zeros(max_bits,1);
 for bits = 1:max_bits
     in_fixed = round(in .* 2.^(bits-1));
@@ -19,11 +19,14 @@ in_10_16 = in_10 .* 2^6;
 in_16 = round(in .* 2^15);
 
 t = 1:length(in);
-subplot(211)
+%subplot(211)
 % plot(t, in, t, double(in_10_16)./2^15, 'r', t,double(in_16)./2^15), 'g';
-plot(variance)
-grid on;
-subplot(212)
+%plot(variance)
+%grid on;
+%subplot(212)
 % plot(var(abs(in_10_16 - in_16)), '*'); 
-semilogy(variance)
+semilogy(variance, 'LineWidth', 2)
+axis([2 16 1e-12 1e-2])
 grid on
+xlabel('Bits','FontSize',10)
+ylabel('Variance','FontSize',10)

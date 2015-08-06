@@ -41,16 +41,16 @@ ARCHITECTURE behavior OF tb_top_serial IS
  
     COMPONENT top
     PORT(
-         clk : IN std_logic;
-         rstn : IN std_logic;
-         i_L_sample : IN std_logic;
-         i_R_sample : IN std_logic;
-         i_L_start : IN std_logic;
+         clk : IN  std_logic;
+         rstn : IN  std_logic;
+         i_L_sample : IN  std_logic;
+         i_R_sample : IN  std_logic;
+         i_L_start : IN  std_logic;
          i_R_start : IN std_logic;
-         o_L_sample : OUT std_logic;
-         o_R_sample : OUT std_logic;
-         o_L_done : OUT std_logic;
-         o_R_done : OUT std_logic
+         o_L_sample : OUT  std_logic;
+         o_R_sample : OUT  std_logic;
+         o_L_done : OUT  std_logic;
+         o_R_done : OUT  std_logic
         );
     END COMPONENT;
     
@@ -70,7 +70,7 @@ ARCHITECTURE behavior OF tb_top_serial IS
    signal o_R_done : std_logic;
 
    -- Clock period definitions
-   constant clk_period : time := 12 ns;
+   constant clk_period : time := 90 ns;
  
   constant len : integer range 0 to 65535 := 20000;
    

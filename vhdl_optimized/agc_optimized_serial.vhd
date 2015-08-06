@@ -15,12 +15,12 @@ use ieee.numeric_std.all;
 entity agc is
     Port ( 	clk 			: in std_logic; 					-- clock
 			rstn 			: in std_logic; 					-- reset, active low
-			i_sample 		: in std_logic; -- input sample from AC97
+			i_sample 		: in std_logic; 					-- input sample from AC97
 			i_start 		: in std_logic; 					-- start signal from AC97
 			i_gain 			: in std_logic_vector(14 downto 0);	-- gain fetched from LUT
 			o_power 		: out std_logic_vector(7 downto 0);	-- sample power to LUT
 			o_gain_fetch 	: out std_logic;					-- enable signal for LUT
-			o_sample 		: out std_logic;--_vector(15 downto 0);-- output sample to equalizer filter
+			o_sample 		: out std_logic;					-- output sample to equalizer filter
 			o_done			: out std_logic
 			);
 end agc;
@@ -33,9 +33,9 @@ architecture Behavioral of agc is
 	
 	-- HIGH PASS FILTER
 	-- high pass filter coefficients
-	constant hp_b_0 : signed(WIDTH/2-1 downto 0) := to_signed(32250, WIDTH/2);--504, WIDTH/2);--
-	constant hp_b_1 : signed(WIDTH/2-1 downto 0) := to_signed(-32250,WIDTH/2);-- -504, WIDTH/2);--
-	constant hp_a_1 : signed(WIDTH/2-1 downto 0) := to_signed(31736, WIDTH/2); --496, WIDTH/2);-- OBS changed sign --
+	constant hp_b_0 : signed(WIDTH/2-1 downto 0) := to_signed(32250, WIDTH/2);
+	constant hp_b_1 : signed(WIDTH/2-1 downto 0) := to_signed(-32250,WIDTH/2);
+	constant hp_a_1 : signed(WIDTH/2-1 downto 0) := to_signed(31736, WIDTH/2);-- OBS changed sign
 	
 	signal hp_x_c, hp_x_n 			: signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- current input sample
 	signal hp_x_prev_c, hp_x_prev_n : signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- previous input sample
@@ -43,11 +43,11 @@ architecture Behavioral of agc is
 	
 	-- EQUALIZER FILTER
 	-- equalizer filter coefficients
-	constant eq_b_0 : signed(WIDTH-1 downto 0) := to_signed(3551068, WIDTH);--55484, WIDTH);--
-	constant eq_b_1 : signed(WIDTH-1 downto 0) := to_signed(-20015, WIDTH);	-- -313, WIDTH);--
-	constant eq_b_2 : signed(WIDTH-1 downto 0) := to_signed(-3527803, WIDTH);-- -55123, WIDTH);--
-	constant eq_a_1 : signed(WIDTH-1 downto 0) := to_signed(20015, WIDTH); 	--313, WIDTH);-- OBS changed sign --
-	constant eq_a_2 : signed(WIDTH-1 downto 0) := to_signed(9657, WIDTH); 	--151, WIDTH);-- OBS changed sign --
+	constant eq_b_0 : signed(WIDTH-1 downto 0) := to_signed(3551068, WIDTH);
+	constant eq_b_1 : signed(WIDTH-1 downto 0) := to_signed(-20015, WIDTH);
+	constant eq_b_2 : signed(WIDTH-1 downto 0) := to_signed(-3527803, WIDTH);
+	constant eq_a_1 : signed(WIDTH-1 downto 0) := to_signed(20015, WIDTH); 	-- OBS changed sign
+	constant eq_a_2 : signed(WIDTH-1 downto 0) := to_signed(9657, WIDTH); 	-- OBS changed sign
 	
 	signal eq_x_c, eq_x_n 						: signed(WIDTH-1 downto 0) 	:= (others => '0'); -- current input sample
 	signal eq_x_prev_c, eq_x_prev_n 			: signed(WIDTH-1 downto 0) 	:= (others => '0'); -- previous input sample
@@ -183,7 +183,7 @@ begin
 	
 		-- latch in serial input sample
 		when LATCH_IN_SAMPLE =>
-			hp_x_n(15 - to_integer(inout_cnt_c)) 	<= i_sample;
+			hp_x_n(15 - to_integer(inout_cnt_c))	<= i_sample;
 			inout_cnt_n 							<= inout_cnt_c + 1;
 			if inout_cnt_c = 15 then
 				state_n <= HP_CALC1;
@@ -254,9 +254,9 @@ begin
 		-- multiply current input sample with filter coefficient
 		when EQ_CALC1 =>
 			hp_x_prev_n <= hp_x_c;
-			hp_y_prev_n <= add_out_c(WIDTH/2-1 downto 0); --add_out_c(30 downto 15); --add_out_c(24 downto 9); --
-			eq_x_n		<= add_out_c(WIDTH-1 downto 0); --resize(add_out_c(46 downto 15), WIDTH); --resize(add_out_c(WIDTH-1 downto 9), WIDTH); --
-			mult_src1_n <= add_out_c(WIDTH-1 downto 0); --resize(add_out_c(46 downto 15), WIDTH); --resize(add_out_c(WIDTH-1 downto 9), WIDTH); --
+			hp_y_prev_n <= add_out_c(WIDTH/2-1 downto 0);
+			eq_x_n		<= add_out_c(WIDTH-1 downto 0);
+			mult_src1_n <= add_out_c(WIDTH-1 downto 0);
 			mult_src2_n <= eq_b_0;
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
@@ -343,9 +343,9 @@ begin
 		when FINISH_CALC =>
 			eq_x_prev_n			<= eq_x_c;
 			eq_x_prev_prev_n	<= eq_x_prev_c;
-			eq_y_prev_n			<= add_out_c(WIDTH-1 downto 0); --add_out_c(46 downto 15); --add_out_c(40 downto 9); --
+			eq_y_prev_n			<= add_out_c(WIDTH-1 downto 0);
 			eq_y_prev_prev_n	<= eq_y_prev_c;			
-			curr_sample_n		<= add_out_c(22 downto 7); --add_out_c(31 downto 16);--
+			curr_sample_n		<= add_out_c(22 downto 7);
 			state_n				<= P_CURR;
 			
 ----------------------------------------------------------------------------------			
@@ -581,15 +581,8 @@ begin
 			
 		-- multiply current sample with the gain fetched from LUT
 		when GAIN =>
-			if P_dB_c > to_signed(-82,16) then
-				-- multiply with gain from LUT
-				mult_src1_n	<= resize(curr_sample_c, WIDTH);
-				mult_src2_n	<= signed(x"0000" & '0' & i_gain);
-			else
-				-- multiply with default gain = no attenuation
-				mult_src1_n	<= resize(curr_sample_c, WIDTH);
-				mult_src2_n	<= to_signed(32767, WIDTH);
-			end if;
+			mult_src1_n	<= resize(curr_sample_c, WIDTH);
+			mult_src2_n	<= signed(x"0000" & '0' & i_gain);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then

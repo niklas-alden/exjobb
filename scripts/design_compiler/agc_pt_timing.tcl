@@ -35,7 +35,7 @@ set synthetic_library "standard.sldb dw_foundation.sldb"
 # step 2: read your design (netlist) & link design
 # top deisgn name: top
 
-read_verilog /home/piraten/ael10nal/Desktop/asic_final/soc/agc_june11.v
+read_verilog /home/piraten/ael10nal/Desktop/asic_final/soc/agc_aug06.v
 #read_verilog /media/GREEN/agc_may29/agc_may29.v
 current_design top
 link
@@ -52,13 +52,11 @@ read_sdc /home/piraten/ael10nal/Desktop/asic_final/netlists/agc_synth.sdc
 ####################### Back annotate     ##########################
 # step 4: back annotate delay information (read sdf file)
 
-read_parasitics /home/piraten/ael10nal/Desktop/asic_final/soc/agc_june11_ss.spef
-read_sdf -type sdf_max /home/piraten/ael10nal/Desktop/asic_final/soc/agc_june11.sdf
-#read_parasitics /media/GREEN/agc_may29/agc_may29_ff.spef
-#read_sdf -typ sdf_max /media/GREEN/agc_may29/agc_may29.sdf
+#read_parasitics /home/piraten/ael10nal/Desktop/asic_final/soc/agc_june11_ss.spef
+read_sdf -type sdf_max /home/piraten/ael10nal/Desktop/asic_final/soc/agc_aug06.sdf
 
 #read_vcd -strip_path tb_top_serial/uut /tmp/modelsim/agc_post_pnr/agc2.vcd
-read_vcd -strip_path tb_top_serial/uut /tmp/modelsim/agc_june03/agc_june11.vcd
+read_vcd -strip_path tb_top_serial/uut /tmp/modelsim/agc_aug06.vcd
 
 ####################### timing analysis and report #################
 # step 5: output timing report, including setup timing, hold timing, and clock skew

@@ -1,34 +1,36 @@
 deselectAll
 selectInst Pcornerul
-selectInst PGNDo
+#selectInst PGNDo
 selectInst inpad_rstn
 selectInst PGNDc
-selectInst PGNDi
-spaceObject -fixSide left -space 21
+selectInst inpad_L_start
+#selectInst PGNDi
+spaceObject -fixSide left -space 46
 
 deselectAll
 selectInst Pcornerll
-selectInst PVDDi
+#selectInst PVDDi
 selectInst clkpad
 selectInst PVDDc
-selectInst PVDDo
-spaceObject -fixSide left -space 25
+selectInst inpad_R_start
+#selectInst PVDDo
+spaceObject -fixSide left -space 46
 
 deselectAll
 selectInst Pcornerul
 selectInst outpad_L_sample
 selectInst outpad_L_done
 selectInst inpad_L_sample
-selectInst inpad_L_start
-spaceObject -fixSide top -space 11
+#selectInst inpad_L_start
+spaceObject -fixSide top -space 31
 
 deselectAll
 selectInst Pcornerur
 selectInst outpad_R_sample
 selectInst outpad_R_done
 selectInst inpad_R_sample
-selectInst inpad_R_start
-spaceObject -fixSide top -space 11
+#selectInst inpad_R_start
+spaceObject -fixSide top -space 31
 deselectAll
 
 deselectAll

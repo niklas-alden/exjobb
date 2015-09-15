@@ -11,5 +11,5 @@ globalNetConnect GND -type pgpin -pin gnd -inst *
 globalNetConnect GND -type tielo -inst *
 getIoFlowFlag
 setIoFlowFlag 0
-floorPlan -coreMarginsBy die -site CORE -s 300 220 95 95 95 95
-#floorPlan -site CORE -s 300 260 15 15 15 15
+#floorPlan -coreMarginsBy die -site CORE -s 300 220 95 95 95 95
+floorPlan -coreMarginsBy die -site CORE -s 300 240 95 95 95 95

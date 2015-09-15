@@ -1,1 +1,1 @@
-clockDesign -specFile Clock.ctstch -outDir clock_report -fixedInstBeforeCTS
+clockDesign -specFile Clock12ns.ctstch -outDir clock_report -fixedInstBeforeCTS

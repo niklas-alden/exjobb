@@ -15,12 +15,12 @@ use ieee.numeric_std.all;
 entity agc is
     Port ( 	clk 			: in std_logic; 					-- clock
 			rstn 			: in std_logic; 					-- reset, active low
-			i_sample 		: in std_logic; 					-- input sample from AC97
+			i_sample 		: in std_logic; -- input sample from AC97
 			i_start 		: in std_logic; 					-- start signal from AC97
 			i_gain 			: in std_logic_vector(14 downto 0);	-- gain fetched from LUT
 			o_power 		: out std_logic_vector(7 downto 0);	-- sample power to LUT
 			o_gain_fetch 	: out std_logic;					-- enable signal for LUT
-			o_sample 		: out std_logic;					-- output sample to equalizer filter
+			o_sample 		: out std_logic;--_vector(15 downto 0);-- output sample to equalizer filter
 			o_done			: out std_logic
 			);
 end agc;
@@ -187,6 +187,7 @@ begin
 			inout_cnt_n 							<= inout_cnt_c + 1;
 			if inout_cnt_c = 15 then
 				state_n <= HP_CALC1;
+				inout_cnt_n <= (others => '1');
 			else
 				state_n <= LATCH_IN_SAMPLE;
 			end if;
@@ -378,7 +379,7 @@ begin
 		
 		-- increasing power, weigh against previous sample
 		when P_W_1A =>
-			mult_src1_n	<= resize(signed(32767 - alpha), WIDTH); -- 32768 - alpha(164) = 32604
+			mult_src1_n	<= to_signed(3271, WIDTH); -- 32767 - alpha(29496) = 3271
 			mult_src2_n	<= signed(P_prev_c);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
@@ -392,7 +393,7 @@ begin
 		
 		-- decreasing power, weigh against previous sample
 		when P_W_1B =>
-			mult_src1_n <= resize(signed(32767 - beta), WIDTH); -- 32768 - beta(983) = 31785
+			mult_src1_n <= to_signed(32764, WIDTH); -- 32767 - beta(3) = 32764
 			mult_src2_n	<= signed(P_prev_c);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
@@ -615,12 +616,14 @@ begin
 			mult_src2_n <= (others => '0');
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
-			inout_cnt_n <= inout_cnt_c + 1;
-			o_sample	<= agc_out_c(15 - to_integer(inout_cnt_c));
-			if inout_cnt_c = 0 then
+			inout_cnt_n <= inout_cnt_c - 1;
+			o_sample	<= agc_out_c(to_integer(inout_cnt_c));
+--			o_sample	<= agc_out_c(15 - to_integer(inout_cnt_c));
+			if inout_cnt_c = 15 then --0
 				P_prev_n 	<= unsigned(mult_out_c(WIDTH-1 downto 0));
 				state_n		<= LATCH_OUT_SAMPLE;
-			elsif inout_cnt_c = 15 then
+			elsif inout_cnt_c = 0 then --15
+			  inout_cnt_n <= (others => '0');
 				o_done		<= '1';
 				state_n		<= HOLD;
 			else

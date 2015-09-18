@@ -2,9 +2,9 @@
 % clf;
 bits = 16;              % resolution of data
 filter_bits = 10;       % resolution of filter coefficients
-load handel; in = y(1:end).*1; % input signal
-% in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
-% in = audioread('Speech_all.wav'); in = in(1:end).*1;
+% load handel; in = y(1:end).*1; % input signal
+% in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(2e5:2.4e5).*1.5;
+in = audioread('Speech_all.wav'); in = in(1:9e4)./max(abs(in(1:9e4))); in = in.*1.0;
 % in = audioread('p50_male.wav'); in = in(1:5e4).*1;
 % in = audioread('p50_female.wav'); in = in(1:5e4).*1;
 % in = ones(1,1200).*1e-4; in(50:600) = 1;
@@ -12,6 +12,7 @@ load handel; in = y(1:end).*1; % input signal
 % f = @(t,G) G.*sin(2.*pi.*2e3.*t);
 % in = [f(t(1:1000),0.01) f(t(1001:6000),1) f(t(6001:9000),0.01)];% f(t(5001:7000),0.6) f(t(7001:9000),1) f(t(9001:end),0.01)];
 
+in = [[0:0.05:1] [1:-0.05:0] [0:0.05:1] [1:-0.05:0] [0:0.05:1] [1:-0.05:0] [0:0.05:1] [1:-0.05:0]];
 
 LUT = int16(agc_lut_dB() .* 2^(16-1));         % Lookup table with gain values
 P_prev = int32(0);                          % Previous power value of input signal (memory)
@@ -46,7 +47,7 @@ x_eq_pre_pre = int32(0);
 
 % tune parameters
 alpha = int32(0.9 .* 2^(16-1));    % attack time ~ < 5ms
-beta  = int32(0.03 .* 2^(16-1));     % release time ~ 30-40ms
+beta  = int32(0.0001 .* 2^(16-1));     % release time ~ 30-40ms
 
 for n = 1:length(in)
     % ----- FIXED POINT -----
@@ -79,14 +80,17 @@ for n = 1:length(in)
     
 %     in_fix_filtered(n) = int32(in_hp_fix(n)); % bypass eq filter
 %     in_fix_filtered_no_gain(n) = in_fix_filtered(n);
-
+%     in_fix_filtered(n) = int16(in_fix(n)); % bypass both filters
     % ----- AGC -----
     P_in = int32(abs(int32(in_fix_filtered(n))).^2);
     
     if P_in > P_prev
         P_tmp(n) = int32(((1*2^(16-1) - alpha).*(P_prev / 2^(16-1))) + (int32(alpha.*P_in) / 2^(16-1)));
+%         P_tmp(n) = int32((int64(alpha).*int64(P_in)) / 2^(16-1));
     else
         P_tmp(n) = int32(((1*2^(16-1) - beta) .*(P_prev / 2^(16-1))) + (int32(beta .*P_in) / 2^(16-1)));
+       % P_tmp(n) = int32(((int32(beta .*P_prev) / 2^(16-1))));
+%         P_tmp(n) = int32((int64(beta).*int64(P_prev)) / 2^(16-1));
     end
 
     if P_tmp(n) ~= 0 % avoid log10 of 0
@@ -122,24 +126,24 @@ end
 % fprintf(fileID, '%d\r\n', out_agc);
 % fclose(fileID);
 
-% figure(1)
-% clf
-% t = 1:length(in);
-% 
-% subplot(311)
-% plot(t, in, t, out, 'r--')
-% legend('in','out','Location','eastoutside')
-% 
-% subplot(312)
-% % plot(t, 10.*log10(double(in_fix_filtered_no_gain).^2), 'b',...
-% %      t, 10.*log10(double(in_fix_filtered).^2), 'r--')
-% plot(t, P, 'b', t, 0, 'r--'...
-%      ...,t, real(20.*log10(double(in_fix_filtered))) - 82, 'm',...
-%      ...t, real(20.*log10(double(out_agc))) - 82, 'g--'...
-%      )
-% % legend('P_{max}', 'P', 'P_{in}', 'P_{out}', 'Location','eastoutside')
+figure(1)
+clf
+t = 1:length(in);
+
+subplot(311)
+plot(t, double(in_fix)./(2^15), t, out, 'r--')
+legend('in','out','Location','eastoutside')
+
+subplot(312)
+% plot(t, 10.*log10(double(in_fix_filtered_no_gain).^2), 'b',...
+%      t, 10.*log10(double(in_fix_filtered).^2), 'r--')
+plot(..., t, 0, 'r--'...
+     t, real(20.*log10(double(in_fix_filtered))) - 82, 'm'...
+     ,t, real(20.*log10(double(out_agc))) - 82, 'g'...
+     ,t, P, 'b')
+legend('P_{out}', 'P_{in}', 'P_{weighted}', 'Location','eastoutside')
 % legend('P', 'P_{max}', 'Location','eastoutside')
-% 
-% subplot(313)
-% plot(t, gain_used)
-% legend('gain','Location','eastoutside')
+
+subplot(313)
+plot(t, gain_used)
+legend('gain','Location','eastoutside')

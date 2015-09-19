@@ -42,7 +42,7 @@ function [gain] = agc_lut_dB(~)
     
     % dB polynomial 3, index 4
     
-    max2 = 50;
+    max2 = 70;
     for i = 1:n
         if i > max2
             lut(i,4) = 10^(max2/10) / 10^(i/10);
@@ -52,11 +52,11 @@ function [gain] = agc_lut_dB(~)
     y_poly = [30 36 42 7];
     p_coeff = polyfit(x_poly, y_poly, 3);
     yy = polyval(p_coeff, P_in);
-    lut(42:55, 4) = yy(42:55) ./ P_in(42:55);
+   % lut(42:55, 4) = yy(42:55) ./ P_in(42:55);
     
     offset = 4;
-    lut(1:(100-offset),4) = lut((offset+1):end,4);
-    lut((100-offset+1):end,4) = lut((100-offset+1):end,3);
+    %lut(1:(100-offset),4) = lut((offset+1):end,4);
+    %lut((100-offset+1):end,4) = lut((100-offset+1):end,3);
 %     clf;
 %     plot(x_poly, y_poly, '*', P_in, P_in'.*lut(P_in,1), P_in, P_in'.*lut(P_in, 4))
 %     grid on;
@@ -102,31 +102,31 @@ function [gain] = agc_lut_dB(~)
 if 1 == 0
     clf;
     figure(2)
-%     subplot(211)
-%     plot(P_in, 10.*log10((10.^(P_in./10))'.*(lut(P_in,1))), 'b')
-%     hold on
-%     plot(P_in, 10.*log10((10.^(P_in./10))'.*(lut(P_in,2))), 'r')
-%     plot(P_in, 10.*log10((10.^(P_in./10))'.*(lut(P_in,3))), 'g')
-%     plot(P_in, 10.*log10((10.^(P_in./10))'.*(lut(P_in,4))), 'm')
-%     xlabel('P_{in} / dB')
-%     ylabel('P_{out} / dB')
-%     grid on
-%     legend('ideal (1)','poly1 (2)','poly2 (3)','poly3 (4)','Location','northwest')    
-%     subplot(212)
-%     plot(P_in, lut(:,:))
-%     grid on
-%     legend('ideal (1)','poly1 (2)','poly2 (3)','poly3 (4)','Location','northwest')
-%     xlabel('P_{in} / dB')
-%     ylabel('gain')
+    subplot(211)
+    plot(P_in, 10.*log10((10.^(P_in./10))'.*(lut(P_in,1))), 'b')
+    hold on
+    plot(P_in, 10.*log10((10.^(P_in./10))'.*(lut(P_in,2))), 'r')
+    plot(P_in, 10.*log10((10.^(P_in./10))'.*(lut(P_in,3))), 'g')
+    plot(P_in, 10.*log10((10.^(P_in./10))'.*(lut(P_in,4))), 'm')
+    xlabel('P_{in} / dB')
+    ylabel('P_{out} / dB')
+    grid on
+    legend('ideal (1)','poly1 (2)','poly2 (3)','poly3 (4)','Location','northwest')    
+    subplot(212)
+    plot(P_in, lut(:,:))
+    grid on
+    legend('ideal (1)','poly1 (2)','poly2 (3)','poly3 (4)','Location','northwest')
+    xlabel('P_{in} / dB')
+    ylabel('gain')
     
     % plot for report
-    plot(P_in, 10.*log10((10.^(P_in./10))'.*(lut(P_in,4))), 'b--', 'LineWidth', 2)
-    hold on
-    plot(P_in, 10.*log10((10.^(P_in./10))'.*(lut(P_in,3))), 'r')
-    grid on
-    xlabel('P_{in}  (dB)')
-    ylabel('P_{out} (dB)')
-    legend('final curve','ideal curve','Location','southeast')
+%     plot(P_in, 10.*log10((10.^(P_in./10))'.*(lut(P_in,4))), 'b--', 'LineWidth', 2)
+%     hold on
+%     plot(P_in, 10.*log10((10.^(P_in./10))'.*(lut(P_in,3))), 'r')
+%     grid on
+%     xlabel('P_{in}  (dB)')
+%     ylabel('P_{out} (dB)')
+%     legend('final curve','ideal curve','Location','southeast')
 end
 
 % EXPORT TO FILE

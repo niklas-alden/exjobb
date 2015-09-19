@@ -1,8 +1,8 @@
 % clear all; 
-clf;
-load handel; in = y(1:end).*1; % input signal
+% clf;
+% load handel; in = y(1:end).*1; % input signal
 % in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
-% in = audioread('Speech_all.wav'); in = in(1:end).*1;
+in = audioread('Speech_all.wav'); in = in(6e3:7e3)./max(abs(in(6e3:7e3)));
 % in = audioread('p50_male.wav'); in = in(1:5e4).*1;
 % in = audioread('p50_female.wav'); in = in(1:5e4).*1;
 % in = ones(1,1200).*1e-4; in(50:600) = 1;
@@ -33,7 +33,7 @@ x_eq_pre_pre = 0;
 
 % tune parameters
 alpha = 0.9;
-beta = 0.03;
+beta = 0.01;
 
 for n = 1:length(in)
     % ----- HIGH PASS FILTER -----
@@ -62,16 +62,18 @@ for n = 1:length(in)
     if P_in > P_prev
         P_tmp = (1 - alpha) * P_prev + alpha * P_in;
     else
-        P_tmp = (1 - beta) * P_prev + beta * P_in;
+        P_tmp = (1 -  beta) * P_prev +  beta * P_in;
     end
     
-    if P_tmp > 1
-        P(n) = 10*log10(P_tmp) - 82;
+    if P_tmp ~= 0
+%         P(n) = 10*log10(P_tmp) - 82;
+        P(n) = 10*log10(P_tmp);
     else
-        P(n) = -82;
+%         P(n) = -82;
+        P(n) = 0;
     end
     
-    if round(P(n)) > 0
+    if round(P(n)) > -82
         out_agc(n) = in_filtered(n) * LUT(round(P(n)) + 82);
         gain_used(n) = LUT(round(P(n)) + 82);
     else
@@ -84,24 +86,24 @@ for n = 1:length(in)
     out(n) = out_agc(n);
 end
 
-% figure(1)
-% clf
-% t = 1:length(in);
-% 
-% subplot(311)
-% plot(t, in, t, out, 'r--')
-% legend('in','out','Location','eastoutside')
-% 
-% subplot(312)
-% % plot(t, 10.*log10(double(in_fix_filtered_no_gain).^2), 'b',...
-% %      t, 10.*log10(double(in_fix_filtered).^2), 'r--')
-% plot(t, P, 'b', t, 82, 'r--'...
-%      ...,t, real(20.*log10(double(in_fix_filtered))) - 82, 'm',...
-%      ...t, real(20.*log10(double(out_agc))) - 82, 'g--'...
-%      )
-% % legend('P_{max}', 'P', 'P_{in}', 'P_{out}', 'Location','eastoutside')
-% legend('P', 'P_{max}', 'Location','eastoutside')
-% 
-% subplot(313)
-% plot(t, gain_used, 'b-')
-% legend('gain','Location','eastoutside')
+figure(1)
+clf
+t = 1:length(in);
+
+subplot(311)
+plot(t, in, t, out, 'r--')
+legend('in','out','Location','eastoutside')
+
+subplot(312)
+% plot(t, 10.*log10(double(in_fix_filtered_no_gain).^2), 'b',...
+%      t, 10.*log10(double(in_fix_filtered).^2), 'r--')
+plot(t, P, 'b', t, -10, 'r--'...
+     ...,t, real(20.*log10(double(in_fix_filtered))) - 82, 'm',...
+     ,t, real(20.*log10(out_agc)), 'g--'...
+     )
+% legend('P_{max}', 'P', 'P_{in}', 'P_{out}', 'Location','eastoutside')
+legend('P', 'P_{max}', 'P_{out}', 'Location','eastoutside')
+
+subplot(313)
+plot(t, gain_used, 'b-')
+legend('gain','Location','eastoutside')

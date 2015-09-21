@@ -42,24 +42,24 @@ function [gain] = agc_lut_dB(~)
     
     % dB polynomial 3, index 4
     
-    max2 = 70;
+    max2 = 60;
     for i = 1:n
         if i > max2
             lut(i,4) = 10^(max2/10) / 10^(i/10);
         end
     end
-    x_poly = [18 36 45 57];
-    y_poly = [30 36 42 7];
-    p_coeff = polyfit(x_poly, y_poly, 3);
-    yy = polyval(p_coeff, P_in);
-   % lut(42:55, 4) = yy(42:55) ./ P_in(42:55);
+%     x_poly = [18 36 45 57];
+%     y_poly = [30 36 42 7];
+%     p_coeff = polyfit(x_poly, y_poly, 3);
+%     yy = polyval(p_coeff, P_in);
+%     lut(42:55, 4) = yy(42:55) ./ P_in(42:55);
     
-    offset = 4;
-    %lut(1:(100-offset),4) = lut((offset+1):end,4);
-    %lut((100-offset+1):end,4) = lut((100-offset+1):end,3);
-%     clf;
-%     plot(x_poly, y_poly, '*', P_in, P_in'.*lut(P_in,1), P_in, P_in'.*lut(P_in, 4))
-%     grid on;
+%     offset = 4;
+%     lut(1:(100-offset),4) = lut((offset+1):end,4);
+%     lut((100-offset+1):end,4) = lut((100-offset+1):end,3);
+    clf;
+    plot(x_poly, y_poly, '*', P_in, P_in'.*lut(P_in,1), P_in, P_in'.*lut(P_in, 4))
+    grid on;
     
 %     
 %     max1 = 62;

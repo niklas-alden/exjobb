@@ -1,9 +1,9 @@
 % clear all; 
 % clf;
-% load handel; in = y(1:end).*1; % input signal
-% in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:3e4);%.*1.2;
-range = (6e3:7e3);
-in = audioread('Speech_all.wav'); in = in(range)./max(abs(in(range)));
+% load handel; in = y(1:end)./max(abs(in)); % input signal
+% in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:6e4).*0.5;
+% range = (1:end);
+in = audioread('Speech_all.wav'); in = in./max(abs(in));
 % in = audioread('p50_male.wav'); in = in(1:5e4).*1;
 % in = audioread('p50_female.wav'); in = in(1:5e4).*1;
 % in = [[0:0.05:1] [0.95:-0.05:0] [0.05:0.05:1] [0.95:-0.05:0]];
@@ -22,21 +22,26 @@ P_out = zeros(size(in));
 out = zeros(size(in));
 
 % time constants
-alpha = 0.9;
-beta = 0.0001;
+alpha = 0.02;
+beta = 0.001;
+
+P_x_fast = zeros(size(in));
+% P_weighted = zeros(size(in));
 
 for n = 1:length(in)
     % ----- AGC -----
-    P_in(n) = abs(in(n)) ^ 2;
-    
-    if P_in(n) > P_prev
-        P_weighted(n) = (1 - alpha) * P_prev + alpha * P_in(n);
-    else
-        P_weighted(n) = (1 -  beta) * P_prev +  beta * P_in(n);
+    P_x_fast(n+1) = (1-alpha)*P_x_fast(n) + alpha*(abs(in(n))^2);
+    P_weighted(n+1)=max(P_x_fast(n+1),P_weighted(n));
+
+    slope = P_x_fast(n+1) - P_x_fast(n);
+
+    if(slope <= 0)
+        P_weighted(n+1) = (1-beta)*P_weighted(n+1);
     end
     
-    if P_weighted(n) ~= 0
-        P_dB(n) = 10*log10(P_weighted(n));
+   
+    if P_weighted(n+1) ~= 0
+        P_dB(n) = 10*log10(P_weighted(n+1));
     else
         P_dB(n) = 0;
     end
@@ -52,7 +57,7 @@ for n = 1:length(in)
     P_prev = abs(out_agc(n)) ^ 2;
     P_out(n) = 10*log10(P_prev);
     
-    out(n) = out_agc(n);
+    out(n) = out_agc(n);    
 end
 
 figure(1)

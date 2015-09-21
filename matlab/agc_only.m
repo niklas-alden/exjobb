@@ -3,10 +3,10 @@
 % load handel; in = y(1:end)./max(abs(in)); % input signal
 % in = audioread('test_mono_8000Hz_16bit_PCM.wav'); in = in(1:6e4).*0.5;
 % range = (1:end);
-in = audioread('Speech_all.wav'); in = in./max(abs(in));
+% in = audioread('Speech_all.wav'); in = in./max(abs(in));
 % in = audioread('p50_male.wav'); in = in(1:5e4).*1;
 % in = audioread('p50_female.wav'); in = in(1:5e4).*1;
-% in = [[0:0.05:1] [0.95:-0.05:0] [0.05:0.05:1] [0.95:-0.05:0]];
+in = [[0:0.05:1] [0.95:-0.05:0] [0.05:0.05:1] [0.95:-0.05:0]];
 
 
 LUT = agc_lut_dB();

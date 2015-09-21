@@ -57,14 +57,18 @@ architecture Behavioral of agc is
 	
 	-- AGC
 	-- time parameters
-	constant alpha 	: unsigned(15 downto 0) := to_unsigned(29490, WIDTH/2); -- attack time
-	constant beta 	: unsigned(15 downto 0) := to_unsigned(3, WIDTH/2); -- release time
+	constant alpha 	: unsigned(15 downto 0) := to_unsigned(655, WIDTH/2); -- attack time
+	constant beta 	: unsigned(15 downto 0) := to_unsigned(33, WIDTH/2); -- release time
 	
-	signal curr_sample_c, curr_sample_n : signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- current input sample
-	signal P_in_c, P_in_n 				: unsigned(WIDTH-1 downto 0)	:= (others => '0'); -- power of input sample
-	signal P_dB_c, P_dB_n 				: signed(7 downto 0) 			:= (others => '0'); -- weighted power of input sample in decibel
-	signal P_prev_c, P_prev_n 			: unsigned(WIDTH-1 downto 0) 	:= (others => '0'); -- power of output sample
-	signal agc_out_c, agc_out_n			: signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- attenuated sample
+	signal curr_sample_c, curr_sample_n 		: signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- current input sample
+--	signal P_in_c, P_in_n 						: unsigned(WIDTH-1 downto 0)	:= (others => '0'); -- power of input sample
+	signal P_w_fast_c, P_w_fast_n 				: unsigned(WIDTH-1 downto 0) 	:= (others => '0'); -- 
+	signal P_w_fast_prev_c, P_w_fast_prev_n 	: unsigned(WIDTH-1 downto 0) 	:= (others => '0'); -- 
+	signal P_weighted_c, P_weighted_n 			: unsigned(WIDTH-1 downto 0) 	:= (others => '0'); -- 
+	signal P_weighted_prev_c, P_weighted_prev_n : unsigned(WIDTH-1 downto 0) 	:= (others => '0'); -- 
+	signal P_dB_c, P_dB_n 						: signed(7 downto 0) 			:= (others => '0'); -- weighted power of input sample in decibel
+--	signal P_prev_c, P_prev_n 					: unsigned(WIDTH-1 downto 0) 	:= (others => '0'); -- power of output sample
+	signal agc_out_c, agc_out_n					: signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- attenuated sample
 	
 	-- MULTIPLIER AND ADDER
 	signal mult_src1_c, mult_src1_n : signed(WIDTH-1 downto 0) 		:= (others => '0');
@@ -77,8 +81,9 @@ architecture Behavioral of agc is
 	-- states for FSM    
 	type state_type is (HOLD, LATCH_IN_SAMPLE, HP_CALC1, HP_CALC2, HP_CALC3, HP_CALC4, 
 						EQ_CALC1, EQ_CALC2, EQ_CALC3, EQ_CALC4, EQ_CALC5, EQ_CALC6, FINISH_CALC,
-						P_CURR, P_COMP, P_W_1A, P_W_1B, P_W_2A, P_W_2B, P_W_3, P_dB, FETCH_GAIN,
-						GAIN, P_OUT, LATCH_OUT_SAMPLE); 
+						P_CURR, P_W1, P_W2, P_W3, P_W4, P_W_INCR1, P_W_INCR2, P_W_DCR1, P_W_DCR2,
+						--P_COMP, P_W_1A, P_W_1B, P_W_2A, P_W_2B, P_W_3, 
+						P_dB, FETCH_GAIN, GAIN, P_OUT, LATCH_OUT_SAMPLE); 
 	signal state_c, state_n : state_type := HOLD;
 	
 begin
@@ -97,9 +102,13 @@ begin
 		eq_x_prev_prev_c	<= (others => '0');
 		eq_y_prev_c			<= (others => '0');
 		eq_y_prev_prev_c 	<= (others => '0');
-		P_in_c 				<= (others => '0');
+--		P_in_c 				<= (others => '0');
+		P_w_fast_c			<= (others => '0');
+		P_w_fast_prev_c		<= (others => '0');
+		P_weighted_c		<= (others => '0');
+		P_weighted_prev_c	<= (others => '0');
 		P_dB_c 				<= (others => '0');
-		P_prev_c 			<= (others => '0');
+--		P_prev_c 			<= (others => '0');
 		agc_out_c 			<= (others => '0');
 		curr_sample_c 		<= (others => '0');
 		mult_src1_c 		<= (others => '0');
@@ -120,9 +129,13 @@ begin
 		eq_x_prev_prev_c 	<= eq_x_prev_prev_n;
 		eq_y_prev_c 		<= eq_y_prev_n;
 		eq_y_prev_prev_c 	<= eq_y_prev_prev_n;
-		P_in_c 				<= P_in_n;
+--		P_in_c 				<= P_in_n;
+		P_w_fast_c			<= P_w_fast_n;
+		P_w_fast_prev_c		<= P_w_fast_prev_n;
+		P_weighted_c		<= P_weighted_n;
+		P_weighted_prev_c	<= P_weighted_prev_n;
 		P_dB_c 				<= P_dB_n;
-		P_prev_c 			<= P_prev_n;
+--		P_prev_c 			<= P_prev_n;
 		agc_out_c 			<= agc_out_n;
 		curr_sample_c 		<= curr_sample_n;
 		mult_src1_c 		<= mult_src1_n;
@@ -136,9 +149,10 @@ begin
 	end if;
 end process;
 
-fsm_proc : process(	state_c, i_start, i_sample, hp_x_c, hp_x_prev_c, hp_y_prev_c, eq_x_c, eq_x_prev_c, eq_x_prev_prev_c,
-					eq_y_prev_c, eq_y_prev_prev_c, curr_sample_c, P_in_c, P_dB_c, i_gain, P_prev_c, agc_out_c,
-					mult_src1_c, mult_src2_c, mult_out_c, add_src1_c, add_src2_c, add_out_c, delay_c, inout_cnt_c) is
+fsm_proc : process(	state_c, i_start, i_sample, hp_x_c, hp_x_prev_c, hp_y_prev_c, eq_x_c, eq_x_prev_c, eq_x_prev_prev_c, eq_y_prev_c, eq_y_prev_prev_c, 
+					curr_sample_c, P_w_fast_c, P_w_fast_prev_c, P_weighted_c, P_weighted_prev_c, P_dB_c, 
+					i_gain, agc_out_c, mult_src1_c, mult_src2_c, mult_out_c, add_src1_c, add_src2_c, add_out_c, delay_c, inout_cnt_c
+					) is
 begin
 	-- default values
 	state_n				<= state_c;
@@ -150,10 +164,14 @@ begin
 	eq_x_prev_prev_n 	<= eq_x_prev_prev_c;
 	eq_y_prev_n 		<= eq_y_prev_c;
 	eq_y_prev_prev_n 	<= eq_y_prev_prev_c;
-	P_in_n 				<= P_in_c;
+--	P_in_n 				<= P_in_c;
+	P_w_fast_n			<= P_w_fast_c;
+	P_w_fast_prev_n		<= P_w_fast_prev_c;
+	P_weighted_n		<= P_weighted_c;
+	P_weighted_prev_n	<= P_weighted_prev_c;
 	P_dB_n 				<= P_dB_c;
 	curr_sample_n 		<= curr_sample_c;
-	P_prev_n 			<= P_prev_c;
+--	P_prev_n 			<= P_prev_c;
 	agc_out_n 			<= agc_out_c;
 	mult_src1_n 		<= mult_src1_c;
 	mult_src2_n 		<= mult_src2_c;
@@ -364,203 +382,280 @@ begin
 				state_n <= P_CURR;
 			else
 				delay_n <= '0';
-				state_n <= P_COMP;
+				state_n <= P_W1;
 			end if;
 		
-		-- compare the power of the current sample against previous sample to determine increasing or decreasing power
-		when P_COMP =>
-			P_in_n <= unsigned(abs(mult_out_c(WIDTH-1 downto 0)));
-			
-			if unsigned(abs(mult_out_c(WIDTH-1 downto 0))) > P_prev_c then
-				state_n <= P_W_1A;
-			else
-				state_n <= P_W_1B;
-			end if;
+--		-- compare the power of the current sample against previous sample to determine increasing or decreasing power
+--		when P_COMP =>
+--			P_in_n <= unsigned(abs(mult_out_c(WIDTH-1 downto 0)));
+--			
+--			if unsigned(abs(mult_out_c(WIDTH-1 downto 0))) > P_prev_c then
+--				state_n <= P_W_1A;
+--			else
+--				state_n <= P_W_1B;
+--			end if;
 		
-		-- increasing power, weigh against previous sample
-		when P_W_1A =>
-			mult_src1_n	<= to_signed(3271, WIDTH); -- 32767 - alpha(29496) = 3271
-			mult_src2_n	<= signed(P_prev_c);
-			add_src1_n 	<= (others => '0');
-			add_src2_n 	<= (others => '0');
-			if delay_c = '0' then
-				delay_n <= '1';
-				state_n <= P_W_1A;
-			else
-				delay_n <= '0';
-				state_n <= P_W_2A;
-			end if;
-		
-		-- decreasing power, weigh against previous sample
-		when P_W_1B =>
-			mult_src1_n <= to_signed(32764, WIDTH); -- 32767 - beta(3) = 32764
-			mult_src2_n	<= signed(P_prev_c);
-			add_src1_n 	<= (others => '0');
-			add_src2_n 	<= (others => '0');
-			if delay_c = '0' then
-				delay_n <= '1';
-				state_n <= P_W_1B;
-			else
-				delay_n <= '0';
-				state_n <= P_W_2B;
-			end if;
-		
-		-- increasing power, weigh in current sample
-		when P_W_2A =>
+		when P_W1 =>
 			mult_src1_n	<= resize(signed(alpha), WIDTH);
-			mult_src2_n	<= signed(P_in_c);
-			add_src1_n 	<= mult_out_c;
+			mult_src2_n	<= mult_out_c(WIDTH-1 downto 0);--signed(mult_out_c(46 downto 15));
+			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
 				delay_n <= '1';
-				state_n <= P_W_2A;
+				state_n <= P_W1;
 			else
 				delay_n <= '0';
-				state_n <= P_W_3;
-			end if;
-		
-		-- decreasing power, weigh in current sample
-		when P_W_2B =>
-			mult_src1_n	<= resize(signed(beta), WIDTH);
-			mult_src2_n	<= signed(P_in_c);
-			add_src1_n 	<= mult_out_c;
+				state_n <= P_W2;
+			end if;		
+			
+		when P_W2 =>
+			mult_src1_n	<= resize(signed(32767 - alpha), WIDTH);--to_signed(32767 - alpha, WIDTH);
+			mult_src2_n	<= signed(P_w_fast_prev_c);
+			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);--mult_out_c;
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
 				delay_n <= '1';
-				state_n <= P_W_2B;
+				state_n <= P_W2;
 			else
 				delay_n <= '0';
-				state_n <= P_W_3;
+				state_n <= P_W3;
 			end if;
-	
-		-- sum up to get weighted power of current sample
-		when P_W_3 =>
+			
+		when P_W3 =>
 			mult_src1_n	<= (others => '0');
 			mult_src2_n	<= (others => '0');
-			add_src1_n	<= add_out_c;
-			add_src2_n	<= mult_out_c;
+			add_src1_n 	<= add_out_c;
+			add_src2_n 	<= resize(signed(mult_out_c(2*WIDTH-1 downto 15)), 2*WIDTH);
 			if delay_c = '0' then
 				delay_n <= '1';
-				state_n <= P_W_3;
+				state_n <= P_W3;
 			else
 				delay_n <= '0';
-				state_n	<= P_dB;
+				state_n <= P_W4;
 			end if;
+			
+		when P_W4 =>
+			mult_src1_n	<= resize(signed(32767 - beta), WIDTH);--to_signed(32767 - beta, WIDTH);
+			mult_src2_n	<= add_out_c(WIDTH-1 downto 0); -- (P_w_fast_c)
+			add_src1_n 	<= (others => '0');
+			add_src2_n 	<= (others => '0');
+			P_w_fast_n <= unsigned(add_out_c(WIDTH-1 downto 0));
+			if unsigned(add_out_c(WIDTH-1 downto 0)) > P_weighted_prev_c then 
+				state_n <= P_W_INCR1;
+			else
+				state_n <= P_W_DCR1;
+			end if;
+			
+		when P_W_INCR1 =>
+			mult_src1_n	<= (others => '0');
+			mult_src2_n	<= (others => '0');
+			add_src1_n 	<= (others => '0');
+			add_src2_n 	<= (others => '0');
+			P_weighted_n <= P_w_fast_c;
+			if P_w_fast_prev_c > P_w_fast_c then
+				state_n <= P_W_DCR2;
+			else
+				state_n <= P_W_INCR2;
+			end if;
+			
+		when P_W_DCR1 =>
+			mult_src1_n	<= (others => '0');
+			mult_src2_n	<= (others => '0');
+			add_src1_n 	<= (others => '0');
+			add_src2_n 	<= (others => '0');
+			P_weighted_n <= P_weighted_prev_c;
+			if P_w_fast_prev_c > P_w_fast_c then
+				state_n <= P_W_DCR2;
+			else
+				state_n <= P_W_INCR2;
+			end if;
+			
+		when P_W_INCR2 =>
+			mult_src1_n	<= (others => '0');
+			mult_src2_n	<= (others => '0');
+			add_src1_n 	<= (others => '0');
+			add_src2_n 	<= (others => '0');
+			state_n <= P_dB;
+						
+		when P_W_DCR2 =>
+			mult_src1_n	<= (others => '0');
+			mult_src2_n	<= (others => '0');
+			add_src1_n 	<= (others => '0');
+			add_src2_n 	<= (others => '0');
+			P_weighted_n <= unsigned(mult_out_c(46 downto 15));
+			state_n <= P_dB;
+		
+
+--		-- decreasing power, weigh against previous sample
+--		when P_W_1B =>
+--			mult_src1_n <= to_signed(32767 - beta, WIDTH); -- 32767 - beta(3) = 32764
+--			mult_src2_n	<= signed(P_prev_c);
+--			add_src1_n 	<= (others => '0');
+--			add_src2_n 	<= (others => '0');
+--			if delay_c = '0' then
+--				delay_n <= '1';
+--				state_n <= P_W_1B;
+--			else
+--				delay_n <= '0';
+--				state_n <= P_W_2B;
+--			end if;
+--		
+--		-- increasing power, weigh in current sample
+--		when P_W_2A =>
+--			mult_src1_n	<= resize(signed(alpha), WIDTH);
+--			mult_src2_n	<= signed(P_in_c);
+--			add_src1_n 	<= mult_out_c;
+--			add_src2_n 	<= (others => '0');
+--			if delay_c = '0' then
+--				delay_n <= '1';
+--				state_n <= P_W_2A;
+--			else
+--				delay_n <= '0';
+--				state_n <= P_W_3;
+--			end if;
+--		
+--		-- decreasing power, weigh in current sample
+--		when P_W_2B =>
+--			mult_src1_n	<= resize(signed(beta), WIDTH);
+--			mult_src2_n	<= signed(P_in_c);
+--			add_src1_n 	<= mult_out_c;
+--			add_src2_n 	<= (others => '0');
+--			if delay_c = '0' then
+--				delay_n <= '1';
+--				state_n <= P_W_2B;
+--			else
+--				delay_n <= '0';
+--				state_n <= P_W_3;
+--			end if;
+--	
+--		-- sum up to get weighted power of current sample
+--		when P_W_3 =>
+--			mult_src1_n	<= (others => '0');
+--			mult_src2_n	<= (others => '0');
+--			add_src1_n	<= add_out_c;
+--			add_src2_n	<= mult_out_c;
+--			if delay_c = '0' then
+--				delay_n <= '1';
+--				state_n <= P_W_3;
+--			else
+--				delay_n <= '0';
+--				state_n	<= P_dB;
+--			end if;
 		
 		-- convert the weighted power to decibel 
 		when P_dB =>
 
-			if unsigned(add_out_c(46 downto 15)) > x"69fe63f3" then -- >92.5dB
+			if unsigned(P_weighted_c) > x"69fe63f3" then -- >92.5dB
 				P_dB_n <= to_signed(11, 8);
-			elsif unsigned(add_out_c(46 downto 15)) > x"54319cc9" then -- >91.5dB
+			elsif unsigned(P_weighted_c) > x"54319cc9" then -- >91.5dB
 				P_dB_n <= to_signed(10, 8);
-			elsif unsigned(add_out_c(46 downto 15)) > x"42e0a497" then -- >90.5dB
+			elsif unsigned(P_weighted_c) > x"42e0a497" then -- >90.5dB
 				P_dB_n <= to_signed(9, 8);
-			elsif unsigned(add_out_c(46 downto 15)) > x"351f68fb" then -- >89.5dB
+			elsif unsigned(P_weighted_c) > x"351f68fb" then -- >89.5dB
 				P_dB_n <= to_signed(8, 8);
-			elsif unsigned(add_out_c(46 downto 15)) > x"2a326539" then -- >88.5dB
+			elsif unsigned(P_weighted_c) > x"2a326539" then -- >88.5dB
 				P_dB_n <= to_signed(7, 8);
-			elsif unsigned(add_out_c(46 downto 15)) > x"2184a5ce" then -- >87.5dB
+			elsif unsigned(P_weighted_c) > x"2184a5ce" then -- >87.5dB
 				P_dB_n <= to_signed(6, 8);
-			elsif unsigned(add_out_c(46 downto 15)) > x"1a9fd9c9" then -- >86.5dB
+			elsif unsigned(P_weighted_c) > x"1a9fd9c9" then -- >86.5dB
 				P_dB_n <= to_signed(5, 8);
-			elsif unsigned(add_out_c(46 downto 15)) > x"152605ce" then -- >85.5dB
+			elsif unsigned(P_weighted_c) > x"152605ce" then -- >85.5dB
 				P_dB_n <= to_signed(4, 8);
-			elsif unsigned(add_out_c(46 downto 15)) > x"10cc82d6" then -- >84.5dB
+			elsif unsigned(P_weighted_c) > x"10cc82d6" then -- >84.5dB
 				P_dB_n <= to_signed(3, 8);
-			elsif unsigned(add_out_c(42 downto 15)) > x"d580472" then -- >83.5dB
+			elsif unsigned(P_weighted_c) > x"d580472" then -- >83.5dB
 				P_dB_n <= to_signed(2, 8);
-			elsif unsigned(add_out_c(42 downto 15)) > x"a997066" then -- >82.5dB
+			elsif unsigned(P_weighted_c) > x"a997066" then -- >82.5dB
 				P_dB_n <= to_signed(1, 8);
-			elsif unsigned(add_out_c(42 downto 15)) > x"86b5c7b" then -- >81.5dB
+			elsif unsigned(P_weighted_c) > x"86b5c7b" then -- >81.5dB
 				P_dB_n <= to_signed(0, 8);
-			elsif unsigned(add_out_c(42 downto 15)) > x"6b01076" then -- >80.5dB
+			elsif unsigned(P_weighted_c) > x"6b01076" then -- >80.5dB
 				P_dB_n <= to_signed(-1, 8);
-			elsif unsigned(add_out_c(42 downto 15)) > x"54ff0e6" then -- >79.5dB
+			elsif unsigned(P_weighted_c) > x"54ff0e6" then -- >79.5dB
 				P_dB_n <= to_signed(-2, 8);
-			elsif unsigned(add_out_c(42 downto 15)) > x"4383d53" then -- >78.5dB
+			elsif unsigned(P_weighted_c) > x"4383d53" then -- >78.5dB
 				P_dB_n <= to_signed(-3, 8);
-			elsif unsigned(add_out_c(42 downto 15)) > x"35a1095" then -- >77.5dB
+			elsif unsigned(P_weighted_c) > x"35a1095" then -- >77.5dB
 				P_dB_n <= to_signed(-4, 8);
-			elsif unsigned(add_out_c(42 downto 15)) > x"2a995c8" then -- >76.5dB
+			elsif unsigned(P_weighted_c) > x"2a995c8" then -- >76.5dB
 				P_dB_n <= to_signed(-5, 8);
-			elsif unsigned(add_out_c(42 downto 15)) > x"21d66fb" then -- >75.5dB
+			elsif unsigned(P_weighted_c) > x"21d66fb" then -- >75.5dB
 				P_dB_n <= to_signed(-6, 8);
-			elsif unsigned(add_out_c(42 downto 15)) > x"1ae0d16" then -- >74.5dB
+			elsif unsigned(P_weighted_c) > x"1ae0d16" then -- >74.5dB
 				P_dB_n <= to_signed(-7, 8);
-			elsif unsigned(add_out_c(42 downto 15)) > x"1559a0c" then -- >73.5dB
+			elsif unsigned(P_weighted_c) > x"1559a0c" then -- >73.5dB
 				P_dB_n <= to_signed(-8, 8);
-			elsif unsigned(add_out_c(42 downto 15)) > x"10f580b" then -- >72.5dB
+			elsif unsigned(P_weighted_c) > x"10f580b" then -- >72.5dB
 				P_dB_n <= to_signed(-9, 8);
-			elsif unsigned(add_out_c(38 downto 15)) > x"d78940" then -- >71.5dB
+			elsif unsigned(P_weighted_c) > x"d78940" then -- >71.5dB
 				P_dB_n <= to_signed(-10, 8);
-			elsif unsigned(add_out_c(38 downto 15)) > x"ab34d9" then -- >70.5dB
+			elsif unsigned(P_weighted_c) > x"ab34d9" then -- >70.5dB
 				P_dB_n <= to_signed(-11, 8);
-			elsif unsigned(add_out_c(38 downto 15)) > x"87fe7e" then -- >69.5dB
+			elsif unsigned(P_weighted_c) > x"87fe7e" then -- >69.5dB
 				P_dB_n <= to_signed(-12, 8);
-			elsif unsigned(add_out_c(38 downto 15)) > x"6c0622" then -- >68.5dB
+			elsif unsigned(P_weighted_c) > x"6c0622" then -- >68.5dB
 				P_dB_n <= to_signed(-13, 8);
-			elsif unsigned(add_out_c(38 downto 15)) > x"55ce76" then -- >67.5dB
+			elsif unsigned(P_weighted_c) > x"55ce76" then -- >67.5dB
 				P_dB_n <= to_signed(-14, 8);
-			elsif unsigned(add_out_c(38 downto 15)) > x"442894" then -- >66.5dB
+			elsif unsigned(P_weighted_c) > x"442894" then -- >66.5dB
 				P_dB_n <= to_signed(-15, 8);
-			elsif unsigned(add_out_c(38 downto 15)) > x"3623e6" then -- >65.5dB
+			elsif unsigned(P_weighted_c) > x"3623e6" then -- >65.5dB
 				P_dB_n <= to_signed(-16, 8);
-			elsif unsigned(add_out_c(38 downto 15)) > x"2b014f" then -- >64.5dB
+			elsif unsigned(P_weighted_c) > x"2b014f" then -- >64.5dB
 				P_dB_n <= to_signed(-17, 8);
-			elsif unsigned(add_out_c(38 downto 15)) > x"222902" then -- >63.5dB
+			elsif unsigned(P_weighted_c) > x"222902" then -- >63.5dB
 				P_dB_n <= to_signed(-18, 8);
-			elsif unsigned(add_out_c(38 downto 15)) > x"1b2268" then -- >62.5dB
+			elsif unsigned(P_weighted_c) > x"1b2268" then -- >62.5dB
 				P_dB_n <= to_signed(-19, 8);
-			elsif unsigned(add_out_c(38 downto 15)) > x"158dba" then -- >61.5dB
+			elsif unsigned(P_weighted_c) > x"158dba" then -- >61.5dB
 				P_dB_n <= to_signed(-20, 8);
-			elsif unsigned(add_out_c(38 downto 15)) > x"111ee3" then -- >60.5dB
+			elsif unsigned(P_weighted_c) > x"111ee3" then -- >60.5dB
 				P_dB_n <= to_signed(-21, 8);
-			elsif unsigned(add_out_c(34 downto 15)) > x"d9973" then -- >59.5dB
+			elsif unsigned(P_weighted_c) > x"d9973" then -- >59.5dB
 				P_dB_n <= to_signed(-22, 8);
-			elsif unsigned(add_out_c(34 downto 15)) > x"acd6a" then -- >58.5dB
+			elsif unsigned(P_weighted_c) > x"acd6a" then -- >58.5dB
 				P_dB_n <= to_signed(-23, 8);
-			elsif unsigned(add_out_c(34 downto 15)) > x"894a6" then -- >57.5dB
+			elsif unsigned(P_weighted_c) > x"894a6" then -- >57.5dB
 				P_dB_n <= to_signed(-24, 8);
-			elsif unsigned(add_out_c(34 downto 15)) > x"6d0dc" then -- >56.5dB
+			elsif unsigned(P_weighted_c) > x"6d0dc" then -- >56.5dB
 				P_dB_n <= to_signed(-25, 8);
-			elsif unsigned(add_out_c(34 downto 15)) > x"569fe" then -- >55.5dB
+			elsif unsigned(P_weighted_c) > x"569fe" then -- >55.5dB
 				P_dB_n <= to_signed(-26, 8);
-			elsif unsigned(add_out_c(34 downto 15)) > x"44cef" then -- >54.5dB
+			elsif unsigned(P_weighted_c) > x"44cef" then -- >54.5dB
 				P_dB_n <= to_signed(-27, 8);
-			elsif unsigned(add_out_c(34 downto 15)) > x"36a81" then -- >53.5dB
+			elsif unsigned(P_weighted_c) > x"36a81" then -- >53.5dB
 				P_dB_n <= to_signed(-28, 8);
-			elsif unsigned(add_out_c(34 downto 15)) > x"2b6a4" then -- >52.5dB
+			elsif unsigned(P_weighted_c) > x"2b6a4" then -- >52.5dB
 				P_dB_n <= to_signed(-29, 8);
-			elsif unsigned(add_out_c(34 downto 15)) > x"227c6" then -- >51.5dB
+			elsif unsigned(P_weighted_c) > x"227c6" then -- >51.5dB
 				P_dB_n <= to_signed(-30, 8);
-			elsif unsigned(add_out_c(34 downto 15)) > x"1b64a" then -- >50.5dB
+			elsif unsigned(P_weighted_c) > x"1b64a" then -- >50.5dB
 				P_dB_n <= to_signed(-31, 8);
-			elsif unsigned(add_out_c(34 downto 15)) > x"15c26" then -- >49.5dB
+			elsif unsigned(P_weighted_c) > x"15c26" then -- >49.5dB
 				P_dB_n <= to_signed(-32, 8);
-			elsif unsigned(add_out_c(34 downto 15)) > x"1148b" then -- >48.5dB
+			elsif unsigned(P_weighted_c) > x"1148b" then -- >48.5dB
 				P_dB_n <= to_signed(-33, 8);
-			elsif unsigned(add_out_c(30 downto 15)) > x"dbab" then -- >47.5dB
+			elsif unsigned(P_weighted_c) > x"dbab" then -- >47.5dB
 				P_dB_n <= to_signed(-34, 8);
-			elsif unsigned(add_out_c(30 downto 15)) > x"ae7d" then -- >46.5dB
+			elsif unsigned(P_weighted_c) > x"ae7d" then -- >46.5dB
 				P_dB_n <= to_signed(-35, 8);
-			elsif unsigned(add_out_c(30 downto 15)) > x"8a9a" then -- >45.5dB
+			elsif unsigned(P_weighted_c) > x"8a9a" then -- >45.5dB
 				P_dB_n <= to_signed(-36, 8);
-			elsif unsigned(add_out_c(30 downto 15)) > x"6e18" then -- >44.5dB
+			elsif unsigned(P_weighted_c) > x"6e18" then -- >44.5dB
 				P_dB_n <= to_signed(-37, 8);
-			elsif unsigned(add_out_c(30 downto 15)) > x"5774" then -- >43.5dB
+			elsif unsigned(P_weighted_c) > x"5774" then -- >43.5dB
 				P_dB_n <= to_signed(-38, 8);
-			elsif unsigned(add_out_c(30 downto 15)) > x"4577" then -- >42.5dB
+			elsif unsigned(P_weighted_c) > x"4577" then -- >42.5dB
 				P_dB_n <= to_signed(-39, 8);
-			elsif unsigned(add_out_c(30 downto 15)) > x"372e" then -- >41.5dB
+			elsif unsigned(P_weighted_c) > x"372e" then -- >41.5dB
 				P_dB_n <= to_signed(-40, 8);
-			elsif unsigned(add_out_c(30 downto 15)) > x"2bd5" then -- >40.5dB
+			elsif unsigned(P_weighted_c) > x"2bd5" then -- >40.5dB
 				P_dB_n <= to_signed(-41, 8);
-			elsif unsigned(add_out_c(30 downto 15)) > x"22d1" then -- >39.5dB
+			elsif unsigned(P_weighted_c) > x"22d1" then -- >39.5dB
 				P_dB_n <= to_signed(-42, 8);
-			elsif unsigned(add_out_c(30 downto 15)) > x"1ba8" then -- >38.5dB
+			elsif unsigned(P_weighted_c) > x"1ba8" then -- >38.5dB
 				P_dB_n <= to_signed(-43, 8);
-			elsif unsigned(add_out_c(30 downto 15)) > x"15f8" then -- >37.5dB
+			elsif unsigned(P_weighted_c) > x"15f8" then -- >37.5dB
 				P_dB_n <= to_signed(-44, 8);
 			
 			else												-- >=0dB
@@ -596,8 +691,8 @@ begin
 		
 		-- calculate power of output sample 
 		when P_OUT =>
-			mult_src1_n	<= abs(mult_out_c(46 downto 15));
-			mult_src2_n	<= abs(mult_out_c(46 downto 15));
+			mult_src1_n	<= (others => '0');--abs(mult_out_c(46 downto 15));
+			mult_src2_n	<= (others => '0');--abs(mult_out_c(46 downto 15));
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
 			agc_out_n 	<= mult_out_c(30 downto 15);
@@ -620,7 +715,9 @@ begin
 			o_sample	<= agc_out_c(to_integer(inout_cnt_c));
 --			o_sample	<= agc_out_c(15 - to_integer(inout_cnt_c));
 			if inout_cnt_c = 15 then --0
-				P_prev_n 	<= unsigned(mult_out_c(WIDTH-1 downto 0));
+				P_w_fast_prev_n <= P_w_fast_c;
+				P_weighted_prev_n <= P_weighted_c;		
+--				P_prev_n 	<= unsigned(mult_out_c(WIDTH-1 downto 0));
 				state_n		<= LATCH_OUT_SAMPLE;
 			elsif inout_cnt_c = 0 then --15
 			  inout_cnt_n <= (others => '0');

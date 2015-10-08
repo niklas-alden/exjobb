@@ -30,16 +30,14 @@ architecture Behavioral of eq_filter is
 	constant a_1 : signed(31 downto 0) := to_signed(-313, 32);
 	constant a_2 : signed(31 downto 0) := to_signed(-151, 32);
 	
-	signal x_c, x_n 					: signed(31 downto 0) := (others => '0'); 	-- current input sample
-	signal x_prev_c, x_prev_n 			: signed(31 downto 0) := (others => '0'); 	-- previous input sample
-	signal x_prev_prev_c, x_prev_prev_n : signed(31 downto 0) := (others => '0'); 	-- before last input sample
-	signal y_c, y_n 					: signed(63 downto 0) := (others => '0');	-- current output sample
-	signal y_prev_c 					: signed(31 downto 0) := (others => '0'); 	-- previous output sample
-	signal y_prev_prev_c, y_prev_prev_n : signed(31 downto 0) := (others => '0'); 	-- before last output sample
-	
-	signal t0_c, t0_n, t1_c, t1_n, t2_c, t2_n, t3_c, t3_n, t4_c, t4_n : signed(63 downto 0) := (others => '0'); -- temporary registers for filter multiplications
+	signal x_c, x_n 					: signed(31 downto 0) := (others => '0'); -- current input sample
+	signal x_prev_c, x_prev_n 			: signed(31 downto 0) := (others => '0'); -- previous input sample
+	signal x_prev_prev_c, x_prev_prev_n : signed(31 downto 0) := (others => '0'); -- before last input sample
+	signal y_c, y_n 					: signed(63 downto 0) := (others => '0'); -- current output sample
+	signal y_prev_c 					: signed(31 downto 0) := (others => '0'); -- previous output sample
+	signal y_prev_prev_c, y_prev_prev_n : signed(31 downto 0) := (others => '0'); -- before last output sample
 
-	type state_type is (HOLD, MULT, ADD, SEND); 									-- states for FSM
+	type state_type is (HOLD, CALC, SEND); -- states for FSM
 	signal state_c, state_n 			: state_type := HOLD;
 	
 begin
@@ -56,11 +54,6 @@ begin
 		y_prev_c 		<= (others => '0');
 		y_prev_prev_c 	<= (others => '0');
 		y_c 			<= (others => '0');
-		t0_c			<= (others => '0');
-		t1_c			<= (others => '0');
-		t2_c			<= (others => '0');
-		t3_c			<= (others => '0');
-		t4_c			<= (others => '0');
 	elsif rising_edge(clk) then
 		state_c 		<= state_n;
 		x_c 			<= x_n;
@@ -69,18 +62,13 @@ begin
 		y_prev_c 		<= y_n(40 downto 9);
 		y_prev_prev_c 	<= y_prev_prev_n;
 		y_c 			<= y_n;
-		t0_c			<= t0_n;
-		t1_c			<= t1_n;
-		t2_c			<= t2_n;
-		t3_c			<= t3_n;
-		t4_c			<= t4_n;
 	end if;
 end process;
 
 
 -- FSM to filter input sample and send filtered output sample
 ----------------------------------------------------------------------------------
-filter_proc : process(state_c, x_c, x_prev_c, x_prev_prev_c, y_c, y_prev_c, y_prev_prev_c, i_sample, i_start, t0_c, t1_c, t2_c, t3_c, t4_c)
+filter_proc : process(state_c, x_c, x_prev_c, x_prev_prev_c, y_c, y_prev_c, y_prev_prev_c, i_sample, i_start)
 begin
 	-- default assignments
 	state_n 		<= state_c;
@@ -89,11 +77,6 @@ begin
 	x_prev_prev_n 	<= x_prev_prev_c;
 	y_n 			<= y_c;
 	y_prev_prev_n 	<= y_prev_prev_c;
-	t0_n			<= t0_c;
-	t1_n			<= t1_c;
-	t2_n			<= t2_c;
-	t3_n			<= t3_c;
-	t4_n			<= t4_c;
 	o_done 			<= '0';
 	o_sample 		<= std_logic_vector(y_c(31 downto 16));	
 	
@@ -103,25 +86,16 @@ begin
 		when HOLD =>
 			if i_start = '1' then
 				x_n 	<= signed(resize(signed(i_sample), 32));
-				state_n <= MULT;
+				state_n <= CALC;
 			end if;
 		
-		-- multiply input sample with filter coefficints
-		when MULT =>
-			t0_n			<= b_0 * x_c;
-			t1_n			<= b_1 * x_prev_c;
-			t2_n			<= b_2 * x_prev_prev_c;
-			t3_n			<= a_1 * y_prev_c;
-			t4_n			<= a_2 * y_prev_prev_c;
+		-- filter input sample
+		when CALC =>
+			y_n 			<= ((((b_0 * x_c) + (b_1 * x_prev_c)) + (b_2 * x_prev_prev_c)) - (a_1 * y_prev_c)) - (a_2 * y_prev_prev_c);
 			x_prev_n 		<= x_c;
 			x_prev_prev_n 	<= x_prev_c;
 			y_prev_prev_n 	<= y_prev_c;
-			state_n 		<= ADD;
-			
-		-- add the multiplied temporary values to get output sample
-		when ADD =>
-			y_n				<= t0_c + t1_c + t2_c - t3_c - t4_c;
-			state_n			<= SEND;
+			state_n 		<= SEND;
 			
 		-- send filtered sample along with a done signal to start AGC
 		when SEND =>

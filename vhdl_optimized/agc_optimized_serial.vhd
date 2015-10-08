@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------------
--- Engineer: 		Niklas Aldén
+-- Engineer: 		Niklas Aldn
 -- 
 -- Create Date:   	19:51:23 05/11/2015 
 -- Design Name: 
@@ -15,12 +15,12 @@ use ieee.numeric_std.all;
 entity agc is
     Port ( 	clk 			: in std_logic; 					-- clock
 			rstn 			: in std_logic; 					-- reset, active low
-			i_sample 		: in std_logic; -- input sample from AC97
+			i_sample 		: in std_logic; 					-- input sample from AC97
 			i_start 		: in std_logic; 					-- start signal from AC97
 			i_gain 			: in std_logic_vector(14 downto 0);	-- gain fetched from LUT
 			o_power 		: out std_logic_vector(7 downto 0);	-- sample power to LUT
 			o_gain_fetch 	: out std_logic;					-- enable signal for LUT
-			o_sample 		: out std_logic;--_vector(15 downto 0);-- output sample to equalizer filter
+			o_sample 		: out std_logic;					-- output sample to equalizer filter
 			o_done			: out std_logic
 			);
 end agc;
@@ -58,7 +58,7 @@ architecture Behavioral of agc is
 	-- AGC
 	-- time parameters
 	constant alpha 	: unsigned(15 downto 0) := to_unsigned(655, WIDTH/2); -- attack time
-	constant beta 	: unsigned(15 downto 0) := to_unsigned(33, WIDTH/2); -- release time
+	constant beta 	: unsigned(15 downto 0) := to_unsigned(1, WIDTH/2); -- release time
 	
 	signal curr_sample_c, curr_sample_n 		: signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- current input sample
 --	signal P_in_c, P_in_n 						: unsigned(WIDTH-1 downto 0)	:= (others => '0'); -- power of input sample
@@ -228,7 +228,9 @@ begin
 		when HP_CALC2 =>
 			mult_src1_n <= resize(hp_x_prev_c, WIDTH);
 			mult_src2_n <= resize(hp_b_1, WIDTH);
-			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
+			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -242,7 +244,9 @@ begin
 		when HP_CALC3 =>
 			mult_src1_n <= resize(hp_y_prev_c, WIDTH);
 			mult_src2_n <= resize(hp_a_1, WIDTH);
-			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
+			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -256,7 +260,9 @@ begin
 		when HP_CALC4 =>
 			mult_src1_n <= (others => '0');
 			mult_src2_n <= (others => '0');
-			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
+			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -273,9 +279,12 @@ begin
 		-- multiply current input sample with filter coefficient
 		when EQ_CALC1 =>
 			hp_x_prev_n <= hp_x_c;
-			hp_y_prev_n <= add_out_c(WIDTH/2-1 downto 0);
-			eq_x_n		<= add_out_c(WIDTH-1 downto 0);
-			mult_src1_n <= add_out_c(WIDTH-1 downto 0);
+--			hp_y_prev_n <= add_out_c(WIDTH/2-1 downto 0);
+--			eq_x_n		<= add_out_c(WIDTH-1 downto 0);
+--			mult_src1_n <= add_out_c(WIDTH-1 downto 0);
+			hp_y_prev_n <= add_out_c(WIDTH/2-1+15 downto 15);
+			eq_x_n		<= add_out_c(WIDTH-1+15 downto 15);
+			mult_src1_n <= add_out_c(WIDTH-1+15 downto 15);
 			mult_src2_n <= eq_b_0;
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
@@ -291,7 +300,9 @@ begin
 		when EQ_CALC2 =>
 			mult_src1_n <= eq_x_prev_c;
 			mult_src2_n <= eq_b_1;
-			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
+			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -305,7 +316,9 @@ begin
 		when EQ_CALC3 =>
 			mult_src1_n <= eq_x_prev_prev_c;
 			mult_src2_n <= eq_b_2;
-			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
+			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -319,7 +332,9 @@ begin
 		when EQ_CALC4 =>
 			mult_src1_n <= eq_y_prev_c;
 			mult_src2_n <= eq_a_1;
-			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
+			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -333,7 +348,9 @@ begin
 		when EQ_CALC5 =>
 			mult_src1_n <= eq_y_prev_prev_c;
 			mult_src2_n <= eq_a_2;
-			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
+			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -347,7 +364,9 @@ begin
 		when EQ_CALC6 =>
 			mult_src1_n <= (others => '0');
 			mult_src2_n <= (others => '0');
-			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+--			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
+			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -362,9 +381,13 @@ begin
 		when FINISH_CALC =>
 			eq_x_prev_n			<= eq_x_c;
 			eq_x_prev_prev_n	<= eq_x_prev_c;
-			eq_y_prev_n			<= add_out_c(WIDTH-1 downto 0);
+--			eq_y_prev_n			<= add_out_c(WIDTH-1 downto 0);
+--			eq_y_prev_n			<= resize(add_out_c(WIDTH-1 downto 9), WIDTH);
+			eq_y_prev_n			<= resize(add_out_c(WIDTH-1+15 downto 15), WIDTH);
 			eq_y_prev_prev_n	<= eq_y_prev_c;			
-			curr_sample_n		<= add_out_c(22 downto 7);
+--			curr_sample_n		<= add_out_c(22 downto 7);
+--			curr_sample_n		<= add_out_c(31 downto 16);
+			curr_sample_n		<= add_out_c(WIDTH/2-1+22 downto 22);
 			state_n				<= P_CURR;
 			
 ----------------------------------------------------------------------------------			
@@ -713,11 +736,11 @@ begin
 			add_src2_n 	<= (others => '0');
 			inout_cnt_n <= inout_cnt_c - 1;
 			o_sample	<= agc_out_c(to_integer(inout_cnt_c));
---			o_sample	<= agc_out_c(15 - to_integer(inout_cnt_c));
+----			o_sample	<= agc_out_c(15 - to_integer(inout_cnt_c));
 			if inout_cnt_c = 15 then --0
 				P_w_fast_prev_n <= P_w_fast_c;
 				P_weighted_prev_n <= P_weighted_c;		
---				P_prev_n 	<= unsigned(mult_out_c(WIDTH-1 downto 0));
+----				P_prev_n 	<= unsigned(mult_out_c(WIDTH-1 downto 0));
 				state_n		<= LATCH_OUT_SAMPLE;
 			elsif inout_cnt_c = 0 then --15
 			  inout_cnt_n <= (others => '0');
@@ -726,6 +749,11 @@ begin
 			else
 				state_n 	<= LATCH_OUT_SAMPLE;
 			end if;
+--			P_w_fast_prev_n <= P_w_fast_c;
+--			P_weighted_prev_n <= P_weighted_c;		
+--			o_sample <= std_logic_vector(agc_out_c);
+--			o_done <= '1';
+--			state_n <= HOLD;
 
 	end case;
 	

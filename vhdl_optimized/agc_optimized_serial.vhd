@@ -57,17 +57,15 @@ architecture Behavioral of agc is
 	
 	-- AGC
 	-- time parameters
-	constant alpha 	: unsigned(15 downto 0) := to_unsigned(655, WIDTH/2); -- attack time
-	constant beta 	: unsigned(15 downto 0) := to_unsigned(1, WIDTH/2); -- release time
+	constant alpha 	: unsigned(15 downto 0) := to_unsigned(655, WIDTH/2); 	-- attack time
+	constant beta 	: unsigned(15 downto 0) := to_unsigned(1, WIDTH/2); 	-- release time
 	
 	signal curr_sample_c, curr_sample_n 		: signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- current input sample
---	signal P_in_c, P_in_n 						: unsigned(WIDTH-1 downto 0)	:= (others => '0'); -- power of input sample
 	signal P_w_fast_c, P_w_fast_n 				: unsigned(WIDTH-1 downto 0) 	:= (others => '0'); -- 
 	signal P_w_fast_prev_c, P_w_fast_prev_n 	: unsigned(WIDTH-1 downto 0) 	:= (others => '0'); -- 
-	signal P_weighted_c, P_weighted_n 			: unsigned(WIDTH-1 downto 0) 	:= (others => '0'); -- 
-	signal P_weighted_prev_c, P_weighted_prev_n : unsigned(WIDTH-1 downto 0) 	:= (others => '0'); -- 
+	signal P_weighted_c, P_weighted_n 			: unsigned(WIDTH-1 downto 0) 	:= (others => '0'); -- weighted power of input sample
+	signal P_weighted_prev_c, P_weighted_prev_n : unsigned(WIDTH-1 downto 0) 	:= (others => '0'); -- weighted power of previous input sample
 	signal P_dB_c, P_dB_n 						: signed(7 downto 0) 			:= (others => '0'); -- weighted power of input sample in decibel
---	signal P_prev_c, P_prev_n 					: unsigned(WIDTH-1 downto 0) 	:= (others => '0'); -- power of output sample
 	signal agc_out_c, agc_out_n					: signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- attenuated sample
 	
 	-- MULTIPLIER AND ADDER
@@ -82,7 +80,6 @@ architecture Behavioral of agc is
 	type state_type is (HOLD, LATCH_IN_SAMPLE, HP_CALC1, HP_CALC2, HP_CALC3, HP_CALC4, 
 						EQ_CALC1, EQ_CALC2, EQ_CALC3, EQ_CALC4, EQ_CALC5, EQ_CALC6, FINISH_CALC,
 						P_CURR, P_W1, P_W2, P_W3, P_W4, P_W_INCR1, P_W_INCR2, P_W_DCR1, P_W_DCR2,
-						--P_COMP, P_W_1A, P_W_1B, P_W_2A, P_W_2B, P_W_3, 
 						P_dB, FETCH_GAIN, GAIN, P_OUT, LATCH_OUT_SAMPLE); 
 	signal state_c, state_n : state_type := HOLD;
 	
@@ -102,13 +99,11 @@ begin
 		eq_x_prev_prev_c	<= (others => '0');
 		eq_y_prev_c			<= (others => '0');
 		eq_y_prev_prev_c 	<= (others => '0');
---		P_in_c 				<= (others => '0');
 		P_w_fast_c			<= (others => '0');
 		P_w_fast_prev_c		<= (others => '0');
 		P_weighted_c		<= (others => '0');
 		P_weighted_prev_c	<= (others => '0');
 		P_dB_c 				<= (others => '0');
---		P_prev_c 			<= (others => '0');
 		agc_out_c 			<= (others => '0');
 		curr_sample_c 		<= (others => '0');
 		mult_src1_c 		<= (others => '0');
@@ -129,13 +124,11 @@ begin
 		eq_x_prev_prev_c 	<= eq_x_prev_prev_n;
 		eq_y_prev_c 		<= eq_y_prev_n;
 		eq_y_prev_prev_c 	<= eq_y_prev_prev_n;
---		P_in_c 				<= P_in_n;
 		P_w_fast_c			<= P_w_fast_n;
 		P_w_fast_prev_c		<= P_w_fast_prev_n;
 		P_weighted_c		<= P_weighted_n;
 		P_weighted_prev_c	<= P_weighted_prev_n;
 		P_dB_c 				<= P_dB_n;
---		P_prev_c 			<= P_prev_n;
 		agc_out_c 			<= agc_out_n;
 		curr_sample_c 		<= curr_sample_n;
 		mult_src1_c 		<= mult_src1_n;
@@ -164,14 +157,12 @@ begin
 	eq_x_prev_prev_n 	<= eq_x_prev_prev_c;
 	eq_y_prev_n 		<= eq_y_prev_c;
 	eq_y_prev_prev_n 	<= eq_y_prev_prev_c;
---	P_in_n 				<= P_in_c;
 	P_w_fast_n			<= P_w_fast_c;
 	P_w_fast_prev_n		<= P_w_fast_prev_c;
 	P_weighted_n		<= P_weighted_c;
 	P_weighted_prev_n	<= P_weighted_prev_c;
 	P_dB_n 				<= P_dB_c;
 	curr_sample_n 		<= curr_sample_c;
---	P_prev_n 			<= P_prev_c;
 	agc_out_n 			<= agc_out_c;
 	mult_src1_n 		<= mult_src1_c;
 	mult_src2_n 		<= mult_src2_c;
@@ -228,8 +219,6 @@ begin
 		when HP_CALC2 =>
 			mult_src1_n <= resize(hp_x_prev_c, WIDTH);
 			mult_src2_n <= resize(hp_b_1, WIDTH);
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
 			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
@@ -244,8 +233,6 @@ begin
 		when HP_CALC3 =>
 			mult_src1_n <= resize(hp_y_prev_c, WIDTH);
 			mult_src2_n <= resize(hp_a_1, WIDTH);
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
 			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
@@ -260,8 +247,6 @@ begin
 		when HP_CALC4 =>
 			mult_src1_n <= (others => '0');
 			mult_src2_n <= (others => '0');
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
 			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
@@ -279,9 +264,6 @@ begin
 		-- multiply current input sample with filter coefficient
 		when EQ_CALC1 =>
 			hp_x_prev_n <= hp_x_c;
---			hp_y_prev_n <= add_out_c(WIDTH/2-1 downto 0);
---			eq_x_n		<= add_out_c(WIDTH-1 downto 0);
---			mult_src1_n <= add_out_c(WIDTH-1 downto 0);
 			hp_y_prev_n <= add_out_c(WIDTH/2-1+15 downto 15);
 			eq_x_n		<= add_out_c(WIDTH-1+15 downto 15);
 			mult_src1_n <= add_out_c(WIDTH-1+15 downto 15);
@@ -300,8 +282,6 @@ begin
 		when EQ_CALC2 =>
 			mult_src1_n <= eq_x_prev_c;
 			mult_src2_n <= eq_b_1;
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
 			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
@@ -316,8 +296,6 @@ begin
 		when EQ_CALC3 =>
 			mult_src1_n <= eq_x_prev_prev_c;
 			mult_src2_n <= eq_b_2;
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
 			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
@@ -332,8 +310,6 @@ begin
 		when EQ_CALC4 =>
 			mult_src1_n <= eq_y_prev_c;
 			mult_src2_n <= eq_a_1;
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
 			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
@@ -348,8 +324,6 @@ begin
 		when EQ_CALC5 =>
 			mult_src1_n <= eq_y_prev_prev_c;
 			mult_src2_n <= eq_a_2;
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
 			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
@@ -364,8 +338,6 @@ begin
 		when EQ_CALC6 =>
 			mult_src1_n <= (others => '0');
 			mult_src2_n <= (others => '0');
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
---			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 9), 2*WIDTH);
 			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
@@ -381,19 +353,14 @@ begin
 		when FINISH_CALC =>
 			eq_x_prev_n			<= eq_x_c;
 			eq_x_prev_prev_n	<= eq_x_prev_c;
---			eq_y_prev_n			<= add_out_c(WIDTH-1 downto 0);
---			eq_y_prev_n			<= resize(add_out_c(WIDTH-1 downto 9), WIDTH);
 			eq_y_prev_n			<= resize(add_out_c(WIDTH-1+15 downto 15), WIDTH);
 			eq_y_prev_prev_n	<= eq_y_prev_c;			
---			curr_sample_n		<= add_out_c(22 downto 7);
---			curr_sample_n		<= add_out_c(31 downto 16);
 			curr_sample_n		<= add_out_c(WIDTH/2-1+22 downto 22);
 			state_n				<= P_CURR;
 			
 ----------------------------------------------------------------------------------			
 -- AGC
 ----------------------------------------------------------------------------------
-		
 		-- calculate power of current sample
 		when P_CURR =>
 			mult_src1_n <= resize(abs(curr_sample_c), WIDTH);
@@ -407,20 +374,12 @@ begin
 				delay_n <= '0';
 				state_n <= P_W1;
 			end if;
-		
---		-- compare the power of the current sample against previous sample to determine increasing or decreasing power
---		when P_COMP =>
---			P_in_n <= unsigned(abs(mult_out_c(WIDTH-1 downto 0)));
---			
---			if unsigned(abs(mult_out_c(WIDTH-1 downto 0))) > P_prev_c then
---				state_n <= P_W_1A;
---			else
---				state_n <= P_W_1B;
---			end if;
-		
+				
+		-- weigh power of current sample against previous used weighted power using attack time constant in case of increasing power
 		when P_W1 =>
 			mult_src1_n	<= resize(signed(alpha), WIDTH);
-			mult_src2_n	<= mult_out_c(WIDTH-1 downto 0);--signed(mult_out_c(46 downto 15));
+--------------------------------------------------------------------------------------------------------------------------------------
+			mult_src2_n	<= mult_out_c(WIDTH-1 downto 0);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
@@ -430,11 +389,12 @@ begin
 				delay_n <= '0';
 				state_n <= P_W2;
 			end if;		
-			
+		
+		-- weigh previous used weighted power against power of current sample using attack time constant in case of increasing power
 		when P_W2 =>
-			mult_src1_n	<= resize(signed(32767 - alpha), WIDTH);--to_signed(32767 - alpha, WIDTH);
+			mult_src1_n	<= resize(signed(32767 - alpha), WIDTH);
 			mult_src2_n	<= signed(P_w_fast_prev_c);
-			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);--mult_out_c;
+			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -443,7 +403,8 @@ begin
 				delay_n <= '0';
 				state_n <= P_W3;
 			end if;
-			
+		
+		-- finish calculation of weighting power using attack time constant
 		when P_W3 =>
 			mult_src1_n	<= (others => '0');
 			mult_src2_n	<= (others => '0');
@@ -456,19 +417,24 @@ begin
 				delay_n <= '0';
 				state_n <= P_W4;
 			end if;
-			
+		
+		-- weigh current attack time power using release time constant in case of decreasing power (current attack time power < previous attack time power)
+		-- store current weighted power calculated with attack time constant
+		-- if current attack time power > previous used weighted power => increasing power, else decreasing power
 		when P_W4 =>
-			mult_src1_n	<= resize(signed(32767 - beta), WIDTH);--to_signed(32767 - beta, WIDTH);
-			mult_src2_n	<= add_out_c(WIDTH-1 downto 0); -- (P_w_fast_c)
+			mult_src1_n	<= resize(signed(32767 - beta), WIDTH);
+			mult_src2_n	<= add_out_c(WIDTH-1 downto 0);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
-			P_w_fast_n <= unsigned(add_out_c(WIDTH-1 downto 0));
+			P_w_fast_n 	<= unsigned(add_out_c(WIDTH-1 downto 0));
 			if unsigned(add_out_c(WIDTH-1 downto 0)) > P_weighted_prev_c then 
 				state_n <= P_W_INCR1;
 			else
 				state_n <= P_W_DCR1;
 			end if;
-			
+		
+		-- increasing power, store power weighted with attack time constant as current weighted power
+		-- if previous attack time power > current attack time power => decreasing power, else increasing power
 		when P_W_INCR1 =>
 			mult_src1_n	<= (others => '0');
 			mult_src2_n	<= (others => '0');
@@ -481,91 +447,38 @@ begin
 				state_n <= P_W_INCR2;
 			end if;
 			
+		-- decreasing power, store previous used power as current weighted power
+		-- if previous attack time power > current attack time power => decreasing power, else increasing power
 		when P_W_DCR1 =>
-			mult_src1_n	<= (others => '0');
-			mult_src2_n	<= (others => '0');
-			add_src1_n 	<= (others => '0');
-			add_src2_n 	<= (others => '0');
-			P_weighted_n <= P_weighted_prev_c;
+			mult_src1_n		<= (others => '0');
+			mult_src2_n		<= (others => '0');
+			add_src1_n 		<= (others => '0');
+			add_src2_n 		<= (others => '0');
+			P_weighted_n 	<= P_weighted_prev_c;
 			if P_w_fast_prev_c > P_w_fast_c then
-				state_n <= P_W_DCR2;
+				state_n 	<= P_W_DCR2;
 			else
-				state_n <= P_W_INCR2;
+				state_n 	<= P_W_INCR2;
 			end if;
-			
+		
+		-- increasing power, do nothing, current weighted power is still attack time power
 		when P_W_INCR2 =>
-			mult_src1_n	<= (others => '0');
-			mult_src2_n	<= (others => '0');
-			add_src1_n 	<= (others => '0');
-			add_src2_n 	<= (others => '0');
-			state_n <= P_dB;
-						
+			mult_src1_n		<= (others => '0');
+			mult_src2_n		<= (others => '0');
+			add_src1_n 		<= (others => '0');
+			add_src2_n 		<= (others => '0');
+			state_n 		<= P_dB;
+		
+		-- decreasing power, store release time weighted power as current weighted power
 		when P_W_DCR2 =>
-			mult_src1_n	<= (others => '0');
-			mult_src2_n	<= (others => '0');
-			add_src1_n 	<= (others => '0');
-			add_src2_n 	<= (others => '0');
-			P_weighted_n <= unsigned(mult_out_c(46 downto 15));
-			state_n <= P_dB;
-		
+			mult_src1_n		<= (others => '0');
+			mult_src2_n		<= (others => '0');
+			add_src1_n 		<= (others => '0');
+			add_src2_n 		<= (others => '0');
+			P_weighted_n 	<= unsigned(mult_out_c(46 downto 15));
+			state_n 		<= P_dB;
 
---		-- decreasing power, weigh against previous sample
---		when P_W_1B =>
---			mult_src1_n <= to_signed(32767 - beta, WIDTH); -- 32767 - beta(3) = 32764
---			mult_src2_n	<= signed(P_prev_c);
---			add_src1_n 	<= (others => '0');
---			add_src2_n 	<= (others => '0');
---			if delay_c = '0' then
---				delay_n <= '1';
---				state_n <= P_W_1B;
---			else
---				delay_n <= '0';
---				state_n <= P_W_2B;
---			end if;
---		
---		-- increasing power, weigh in current sample
---		when P_W_2A =>
---			mult_src1_n	<= resize(signed(alpha), WIDTH);
---			mult_src2_n	<= signed(P_in_c);
---			add_src1_n 	<= mult_out_c;
---			add_src2_n 	<= (others => '0');
---			if delay_c = '0' then
---				delay_n <= '1';
---				state_n <= P_W_2A;
---			else
---				delay_n <= '0';
---				state_n <= P_W_3;
---			end if;
---		
---		-- decreasing power, weigh in current sample
---		when P_W_2B =>
---			mult_src1_n	<= resize(signed(beta), WIDTH);
---			mult_src2_n	<= signed(P_in_c);
---			add_src1_n 	<= mult_out_c;
---			add_src2_n 	<= (others => '0');
---			if delay_c = '0' then
---				delay_n <= '1';
---				state_n <= P_W_2B;
---			else
---				delay_n <= '0';
---				state_n <= P_W_3;
---			end if;
---	
---		-- sum up to get weighted power of current sample
---		when P_W_3 =>
---			mult_src1_n	<= (others => '0');
---			mult_src2_n	<= (others => '0');
---			add_src1_n	<= add_out_c;
---			add_src2_n	<= mult_out_c;
---			if delay_c = '0' then
---				delay_n <= '1';
---				state_n <= P_W_3;
---			else
---				delay_n <= '0';
---				state_n	<= P_dB;
---			end if;
-		
-		-- convert the weighted power to decibel 
+		-- convert the current weighted power to decibel 
 		when P_dB =>
 
 			if unsigned(P_weighted_c) > x"69fe63f3" then -- >92.5dB
@@ -681,7 +594,7 @@ begin
 			elsif unsigned(P_weighted_c) > x"15f8" then -- >37.5dB
 				P_dB_n <= to_signed(-44, 8);
 			
-			else												-- >=0dB
+			else										-- >=0dB
 				P_dB_n <= to_signed(-82, 8);
 			end if;			
 			state_n <= FETCH_GAIN;
@@ -697,7 +610,6 @@ begin
 				state_n 		<= GAIN;
 			end if;
 
-			
 		-- multiply current sample with the gain fetched from LUT
 		when GAIN =>
 			mult_src1_n	<= resize(curr_sample_c, WIDTH);
@@ -712,22 +624,24 @@ begin
 				state_n <= P_OUT;
 			end if;
 		
-		-- calculate power of output sample 
+		-- store output sample 
 		when P_OUT =>
-			mult_src1_n	<= (others => '0');--abs(mult_out_c(46 downto 15));
-			mult_src2_n	<= (others => '0');--abs(mult_out_c(46 downto 15));
+			mult_src1_n	<= (others => '0');
+			mult_src2_n	<= (others => '0');
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
 			agc_out_n 	<= mult_out_c(30 downto 15);
-			if delay_c = '0' then
-				delay_n <= '1';
-				state_n <= P_OUT;
-			else
-				delay_n <= '0';
+-----------------------------------------------------------------------------------------------------------------------
+--			if delay_c = '0' then
+--				delay_n <= '1';
+--				state_n <= P_OUT;
+--			else
+--				delay_n <= '0';
 				state_n <= LATCH_OUT_SAMPLE;
-			end if;
+--			end if;
 			
-		-- save power of output sample for comparison and weighting with next input sample
+		-- save attack time power as previous attack time power to be used next time
+		-- save current weighted power as previous weighted power to be used next time
 		-- latch out processed sample and signal when done
 		when LATCH_OUT_SAMPLE =>
 			mult_src1_n <= (others => '0');
@@ -736,24 +650,17 @@ begin
 			add_src2_n 	<= (others => '0');
 			inout_cnt_n <= inout_cnt_c - 1;
 			o_sample	<= agc_out_c(to_integer(inout_cnt_c));
-----			o_sample	<= agc_out_c(15 - to_integer(inout_cnt_c));
-			if inout_cnt_c = 15 then --0
-				P_w_fast_prev_n <= P_w_fast_c;
-				P_weighted_prev_n <= P_weighted_c;		
-----				P_prev_n 	<= unsigned(mult_out_c(WIDTH-1 downto 0));
-				state_n		<= LATCH_OUT_SAMPLE;
-			elsif inout_cnt_c = 0 then --15
-			  inout_cnt_n <= (others => '0');
+			if inout_cnt_c = 15 then
+				P_w_fast_prev_n 	<= P_w_fast_c;
+				P_weighted_prev_n 	<= P_weighted_c;		
+				state_n				<= LATCH_OUT_SAMPLE;
+			elsif inout_cnt_c = 0 then
+			  inout_cnt_n 	<= (others => '0');
 				o_done		<= '1';
 				state_n		<= HOLD;
 			else
 				state_n 	<= LATCH_OUT_SAMPLE;
 			end if;
---			P_w_fast_prev_n <= P_w_fast_c;
---			P_weighted_prev_n <= P_weighted_c;		
---			o_sample <= std_logic_vector(agc_out_c);
---			o_done <= '1';
---			state_n <= HOLD;
 
 	end case;
 	

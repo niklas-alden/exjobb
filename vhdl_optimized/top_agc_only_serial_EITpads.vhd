@@ -68,7 +68,6 @@ architecture Behavioral of top is
 	signal L_gain_lut_agc, R_gain_lut_agc 		: std_logic_vector(14 downto 0);
 	signal L_fetch_agc_lut, R_fetch_agc_lut 	: std_logic;
 	-- Pad signals
-	--signal HIGH, LOW 						: std_logic;
 	signal clk_pad, rstn_pad 				: std_logic;
 	signal i_L_start_pad, i_R_start_pad 	: std_logic;
 	signal i_L_sample_pad, i_R_sample_pad 	: std_logic;

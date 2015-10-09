@@ -18,8 +18,7 @@ entity top is
 			o_SDATA_out : out std_logic;
 			o_SYNC 		: out std_logic;
 			o_RSTN 		: out std_logic;
-			i_BIT_CLK 	: in std_logic--;
---		   led_test : out std_logic_vector(15 downto 0)
+			i_BIT_CLK 	: in std_logic
 			);
 end top;
 
@@ -55,10 +54,11 @@ architecture Behavioral of top is
 				rstn 			: in std_logic;
 				i_sample		: in std_logic_vector(15 downto 0);
 				i_start 		: in std_logic;
-				i_gain 			: in std_logic_vector(15 downto 0);
+				i_gain 			: in std_logic_vector(14 downto 0);
 				o_gain_fetch 	: out std_logic;
 				o_power 		: out std_logic_vector(7 downto 0);
-				o_sample 		: out std_logic_vector(15 downto 0)
+				o_sample 		: out std_logic_vector(15 downto 0);
+				o_done			: out std_logic
 		);
 	end component;
 
@@ -69,25 +69,22 @@ architecture Behavioral of top is
 				i_R_enable 	: in std_logic;
 				i_L_dB 		: in std_logic_vector(7 downto 0);
 				i_R_dB 		: in std_logic_vector(7 downto 0);
-				o_L_gain 	: out std_logic_vector(15 downto 0);
-				o_R_gain 	: out std_logic_vector(15 downto 0)
+				o_L_gain 	: out std_logic_vector(14 downto 0);
+				o_R_gain 	: out std_logic_vector(14 downto 0)
 			);
 	end component;
 
 -- INV BIT CLOCK -> AC97 TOP
 	signal invert_bit_clk_ac97					: std_logic;
 -- AC97 -> AGC
-	signal L_sample_ac97_agc, R_sample_ac97_agc 	: std_logic_vector(15 downto 0);
+	signal L_sample_ac97_agc, R_sample_ac97_agc : std_logic_vector(15 downto 0);
 	signal L_start_ac97_agc, R_start_ac97_agc 	: std_logic;
 -- AGC <-> GAIN LUT
 	signal L_power_agc_lut, R_power_agc_lut 	: std_logic_vector(7 downto 0);
-	signal L_gain_lut_agc, R_gain_lut_agc 		: std_logic_vector(15 downto 0);
+	signal L_gain_lut_agc, R_gain_lut_agc 		: std_logic_vector(14 downto 0);
 	signal L_fetch_agc_lut, R_fetch_agc_lut 	: std_logic;
 -- AGC -> AC97
 	signal L_sample_agc_ac97, R_sample_agc_ac97 : std_logic_vector(15 downto 0);
-	
--- loopback
-	signal L_loop, R_loop : std_logic_vector(15 downto 0);
 	
 begin
 
@@ -108,10 +105,10 @@ begin
 			o_ac97_rstn 		=> o_RSTN,
 			i_bit_clk 			=> i_BIT_CLK,
 			i_falling_bit_clk	=> invert_bit_clk_ac97,
-			i_L_from_AGC 		=> L_sample_agc_ac97,--L_loop,--
-			i_R_from_AGC 		=> R_sample_agc_ac97,--R_loop,--
-			o_L_to_AGC 			=> L_sample_ac97_agc,--L_loop,--led_test,--
-			o_R_to_AGC 			=> R_sample_ac97_agc,--R_loop,--led_test,--
+			i_L_from_AGC 		=> L_sample_agc_ac97,
+			i_R_from_AGC 		=> R_sample_agc_ac97,
+			o_L_to_AGC 			=> L_sample_ac97_agc,
+			o_R_to_AGC 			=> R_sample_ac97_agc,
 			o_L_AGC_start 		=> L_start_ac97_agc,
 			o_R_AGC_start 		=> R_start_ac97_agc
 			);

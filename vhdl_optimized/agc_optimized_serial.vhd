@@ -21,21 +21,29 @@ entity agc is
 			o_power 		: out std_logic_vector(7 downto 0);	-- sample power to LUT
 			o_gain_fetch 	: out std_logic;					-- enable signal for LUT
 			o_sample 		: out std_logic;					-- output sample to equalizer filter
-			o_done			: out std_logic
+			o_done			: out std_logic						-- done signal
 			);
 end agc;
 
 architecture Behavioral of agc is
 	
-	constant WIDTH 					: integer 				:= 32;				-- general register width
+	constant WIDTH 			: integer 	:= 32;									-- general register width
+	constant MULT_IN1_WIDTH : integer	:= 32;									-- width of input 1 to multiplier
+	constant MULT_IN2_WIDTH : integer	:= 17;									-- width of input 2 to multiplier
+	constant MULT_OUT_WIDTH : integer	:= MULT_IN1_WIDTH + MULT_IN2_WIDTH;		-- width of multiplier output
+	constant ADD_IN1_WIDTH	: integer	:= 52;									-- width of input 1 to adder
+	constant ADD_IN2_WIDTH	: integer	:= 49;									-- width of input 2 to adder
+	constant ADD_OUT_WIDTH	: integer	:= ADD_IN1_WIDTH;						-- width of adder output
+	constant FILTER_BITS	: integer	:= 9; 									-- 10 bits = 2^9
+	
 	signal delay_c, delay_n 		: std_logic				:= '0';				-- one bit delay counter
 	signal inout_cnt_c, inout_cnt_n : unsigned(3 downto 0) 	:= (others => '0'); -- counter for latching input and output sample
 	
 	-- HIGH PASS FILTER
 	-- high pass filter coefficients
-	constant hp_b_0 : signed(WIDTH/2-1 downto 0) := to_signed(32250, WIDTH/2);
-	constant hp_b_1 : signed(WIDTH/2-1 downto 0) := to_signed(-32250,WIDTH/2);
-	constant hp_a_1 : signed(WIDTH/2-1 downto 0) := to_signed(31736, WIDTH/2);-- OBS changed sign
+	constant hp_b_0 : signed(WIDTH/2-1 downto 0) := to_signed(504, WIDTH/2);
+	constant hp_b_1 : signed(WIDTH/2-1 downto 0) := to_signed(-504,WIDTH/2);
+	constant hp_a_1 : signed(WIDTH/2-1 downto 0) := to_signed(496, WIDTH/2); -- OBS changed sign
 	
 	signal hp_x_c, hp_x_n 			: signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- current input sample
 	signal hp_x_prev_c, hp_x_prev_n : signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- previous input sample
@@ -43,11 +51,11 @@ architecture Behavioral of agc is
 	
 	-- EQUALIZER FILTER
 	-- equalizer filter coefficients
-	constant eq_b_0 : signed(WIDTH-1 downto 0) := to_signed(3551068, WIDTH);
-	constant eq_b_1 : signed(WIDTH-1 downto 0) := to_signed(-20015, WIDTH);
-	constant eq_b_2 : signed(WIDTH-1 downto 0) := to_signed(-3527803, WIDTH);
-	constant eq_a_1 : signed(WIDTH-1 downto 0) := to_signed(20015, WIDTH); 	-- OBS changed sign
-	constant eq_a_2 : signed(WIDTH-1 downto 0) := to_signed(9657, WIDTH); 	-- OBS changed sign
+	constant eq_b_0 : signed(MULT_IN2_WIDTH-1 downto 0) := to_signed(55484, MULT_IN2_WIDTH);
+	constant eq_b_1 : signed(MULT_IN2_WIDTH-1 downto 0) := to_signed(-313, MULT_IN2_WIDTH);
+	constant eq_b_2 : signed(MULT_IN2_WIDTH-1 downto 0) := to_signed(-55123, MULT_IN2_WIDTH);
+	constant eq_a_1 : signed(MULT_IN2_WIDTH-1 downto 0) := to_signed(313, MULT_IN2_WIDTH); 		-- OBS changed sign
+	constant eq_a_2 : signed(MULT_IN2_WIDTH-1 downto 0) := to_signed(151, MULT_IN2_WIDTH); 		-- OBS changed sign
 	
 	signal eq_x_c, eq_x_n 						: signed(WIDTH-1 downto 0) 	:= (others => '0'); -- current input sample
 	signal eq_x_prev_c, eq_x_prev_n 			: signed(WIDTH-1 downto 0) 	:= (others => '0'); -- previous input sample
@@ -69,12 +77,12 @@ architecture Behavioral of agc is
 	signal agc_out_c, agc_out_n					: signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- attenuated sample
 	
 	-- MULTIPLIER AND ADDER
-	signal mult_src1_c, mult_src1_n : signed(WIDTH-1 downto 0) 		:= (others => '0');
-	signal mult_src2_c, mult_src2_n : signed(WIDTH-1 downto 0) 		:= (others => '0');
-	signal mult_out_c, mult_out_n 	: signed(2*WIDTH-1 downto 0) 	:= (others => '0');
-	signal add_src1_c, add_src1_n 	: signed(2*WIDTH-1 downto 0) 	:= (others => '0');
-	signal add_src2_c, add_src2_n 	: signed(2*WIDTH-1 downto 0) 	:= (others => '0');
-	signal add_out_c, add_out_n 	: signed(2*WIDTH-1 downto 0) 	:= (others => '0');
+	signal mult_src1_c, mult_src1_n : signed(MULT_IN1_WIDTH-1 downto 0) := (others => '0');
+	signal mult_src2_c, mult_src2_n : signed(MULT_IN2_WIDTH-1 downto 0) := (others => '0');
+	signal mult_out_c, mult_out_n 	: signed(MULT_OUT_WIDTH-1 downto 0) := (others => '0');
+	signal add_src1_c, add_src1_n 	: signed(ADD_IN1_WIDTH-1 downto 0) 	:= (others => '0');
+	signal add_src2_c, add_src2_n 	: signed(ADD_IN2_WIDTH-1 downto 0) 	:= (others => '0');
+	signal add_out_c, add_out_n 	: signed(ADD_OUT_WIDTH-1 downto 0) 	:= (others => '0');
 		
 	-- states for FSM    
 	type state_type is (HOLD, LATCH_IN_SAMPLE, HP_CALC1, HP_CALC2, HP_CALC3, HP_CALC4, 
@@ -195,16 +203,16 @@ begin
 			hp_x_n(15 - to_integer(inout_cnt_c))	<= i_sample;
 			inout_cnt_n 							<= inout_cnt_c + 1;
 			if inout_cnt_c = 15 then
-				state_n <= HP_CALC1;
-				inout_cnt_n <= (others => '1');
+				state_n 							<= HP_CALC1;
+				inout_cnt_n 						<= (others => '1');
 			else
-				state_n <= LATCH_IN_SAMPLE;
+				state_n 							<= LATCH_IN_SAMPLE;
 			end if;
 					
 		-- multiply current input sample with filter coefficient
 		when HP_CALC1 =>
-			mult_src1_n <= resize(hp_x_c, WIDTH);
-			mult_src2_n <= resize(hp_b_0, WIDTH);
+			mult_src1_n <= resize(hp_x_c, MULT_IN1_WIDTH);
+			mult_src2_n <= resize(hp_b_0, MULT_IN2_WIDTH);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
@@ -217,9 +225,9 @@ begin
 		
 		-- multiply previous input sample with filter coefficient
 		when HP_CALC2 =>
-			mult_src1_n <= resize(hp_x_prev_c, WIDTH);
-			mult_src2_n <= resize(hp_b_1, WIDTH);
-			add_src1_n 	<= mult_out_c;
+			mult_src1_n <= resize(hp_x_prev_c, MULT_IN1_WIDTH);
+			mult_src2_n <= resize(hp_b_1, MULT_IN2_WIDTH);
+			add_src1_n 	<= resize(mult_out_c, ADD_IN1_WIDTH);
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -231,10 +239,10 @@ begin
 		
 		-- multiply previous output sample with filter coefficient
 		when HP_CALC3 =>
-			mult_src1_n <= resize(hp_y_prev_c, WIDTH);
-			mult_src2_n <= resize(hp_a_1, WIDTH);
-			add_src1_n 	<= mult_out_c;
-			add_src2_n 	<= add_out_c;
+			mult_src1_n <= resize(hp_y_prev_c, MULT_IN1_WIDTH);
+			mult_src2_n <= resize(hp_a_1, MULT_IN2_WIDTH);
+			add_src1_n 	<= resize(mult_out_c, ADD_IN1_WIDTH);
+			add_src2_n 	<= add_out_c(ADD_IN2_WIDTH-1 downto 0);
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= HP_CALC3;
@@ -247,8 +255,8 @@ begin
 		when HP_CALC4 =>
 			mult_src1_n <= (others => '0');
 			mult_src2_n <= (others => '0');
-			add_src1_n 	<= mult_out_c;
-			add_src2_n 	<= add_out_c;
+			add_src1_n 	<= resize(mult_out_c, ADD_IN1_WIDTH);
+			add_src2_n 	<= add_out_c(ADD_IN2_WIDTH-1 downto 0);
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= HP_CALC4;
@@ -264,9 +272,9 @@ begin
 		-- multiply current input sample with filter coefficient
 		when EQ_CALC1 =>
 			hp_x_prev_n <= hp_x_c;
-			hp_y_prev_n <= add_out_c(WIDTH/2-1+15 downto 15);
-			eq_x_n		<= add_out_c(WIDTH-1+15 downto 15);
-			mult_src1_n <= add_out_c(WIDTH-1+15 downto 15);
+			hp_y_prev_n <= add_out_c(WIDTH/2-1+FILTER_BITS downto FILTER_BITS);
+			eq_x_n		<= add_out_c(WIDTH-1+FILTER_BITS downto FILTER_BITS);
+			mult_src1_n <= add_out_c(WIDTH-1+FILTER_BITS downto FILTER_BITS);
 			mult_src2_n <= eq_b_0;
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
@@ -282,7 +290,7 @@ begin
 		when EQ_CALC2 =>
 			mult_src1_n <= eq_x_prev_c;
 			mult_src2_n <= eq_b_1;
-			add_src1_n 	<= mult_out_c;
+			add_src1_n 	<= resize(mult_out_c, ADD_IN1_WIDTH);
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -296,8 +304,8 @@ begin
 		when EQ_CALC3 =>
 			mult_src1_n <= eq_x_prev_prev_c;
 			mult_src2_n <= eq_b_2;
-			add_src1_n 	<= mult_out_c;
-			add_src2_n 	<= add_out_c;
+			add_src1_n 	<= add_out_c(ADD_IN1_WIDTH-1 downto 0);
+			add_src2_n 	<= resize(mult_out_c, ADD_IN2_WIDTH);
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= EQ_CALC3;
@@ -310,8 +318,8 @@ begin
 		when EQ_CALC4 =>
 			mult_src1_n <= eq_y_prev_c;
 			mult_src2_n <= eq_a_1;
-			add_src1_n 	<= mult_out_c;
-			add_src2_n 	<= add_out_c;
+			add_src1_n 	<= add_out_c(ADD_IN1_WIDTH-1 downto 0);
+			add_src2_n 	<= resize(mult_out_c, ADD_IN2_WIDTH);
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= EQ_CALC4;
@@ -324,8 +332,8 @@ begin
 		when EQ_CALC5 =>
 			mult_src1_n <= eq_y_prev_prev_c;
 			mult_src2_n <= eq_a_2;
-			add_src1_n 	<= mult_out_c;
-			add_src2_n 	<= add_out_c;
+			add_src1_n 	<= add_out_c(ADD_IN1_WIDTH-1 downto 0);
+			add_src2_n 	<= resize(mult_out_c, ADD_IN2_WIDTH);
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= EQ_CALC5;
@@ -338,8 +346,8 @@ begin
 		when EQ_CALC6 =>
 			mult_src1_n <= (others => '0');
 			mult_src2_n <= (others => '0');
-			add_src1_n 	<= mult_out_c;
-			add_src2_n 	<= add_out_c;
+			add_src1_n 	<= add_out_c(ADD_IN1_WIDTH-1 downto 0);
+			add_src2_n 	<= resize(mult_out_c, ADD_IN2_WIDTH);
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= EQ_CALC6;
@@ -353,9 +361,10 @@ begin
 		when FINISH_CALC =>
 			eq_x_prev_n			<= eq_x_c;
 			eq_x_prev_prev_n	<= eq_x_prev_c;
-			eq_y_prev_n			<= resize(add_out_c(WIDTH-1+15 downto 15), WIDTH);
+			----------------------------------------------------------------------------------------
+			eq_y_prev_n			<= resize(add_out_c(WIDTH-1+FILTER_BITS downto FILTER_BITS), WIDTH);
 			eq_y_prev_prev_n	<= eq_y_prev_c;			
-			curr_sample_n		<= add_out_c(WIDTH/2-1+22 downto 22);
+			curr_sample_n		<= add_out_c(WIDTH/2-1+FILTER_BITS+7 downto FILTER_BITS+7);
 			state_n				<= P_CURR;
 			
 ----------------------------------------------------------------------------------			
@@ -363,8 +372,8 @@ begin
 ----------------------------------------------------------------------------------
 		-- calculate power of current sample
 		when P_CURR =>
-			mult_src1_n <= resize(abs(curr_sample_c), WIDTH);
-			mult_src2_n	<= resize(abs(curr_sample_c), WIDTH);
+			mult_src1_n <= resize(abs(curr_sample_c), MULT_IN1_WIDTH);
+			mult_src2_n	<= resize(abs(curr_sample_c), MULT_IN2_WIDTH);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
@@ -377,9 +386,8 @@ begin
 				
 		-- weigh power of current sample against previous used weighted power using attack time constant in case of increasing power
 		when P_W1 =>
-			mult_src1_n	<= resize(signed(alpha), WIDTH);
---------------------------------------------------------------------------------------------------------------------------------------
-			mult_src2_n	<= mult_out_c(WIDTH-1 downto 0);
+			mult_src1_n	<= mult_out_c(MULT_IN1_WIDTH-1 downto 0);
+			mult_src2_n	<= resize(signed(alpha), MULT_IN2_WIDTH);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
@@ -392,9 +400,9 @@ begin
 		
 		-- weigh previous used weighted power against power of current sample using attack time constant in case of increasing power
 		when P_W2 =>
-			mult_src1_n	<= resize(signed(32767 - alpha), WIDTH);
-			mult_src2_n	<= signed(P_w_fast_prev_c);
-			add_src1_n 	<= resize(mult_out_c(2*WIDTH-1 downto 15), 2*WIDTH);
+			mult_src1_n	<= signed(P_w_fast_prev_c);
+			mult_src2_n	<= resize(signed(32767 - alpha), MULT_IN2_WIDTH);
+			add_src1_n 	<= resize(mult_out_c(MULT_OUT_WIDTH-1 downto 15), ADD_IN1_WIDTH);
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -408,8 +416,8 @@ begin
 		when P_W3 =>
 			mult_src1_n	<= (others => '0');
 			mult_src2_n	<= (others => '0');
-			add_src1_n 	<= add_out_c;
-			add_src2_n 	<= resize(signed(mult_out_c(2*WIDTH-1 downto 15)), 2*WIDTH);
+			add_src1_n 	<= add_out_c(ADD_IN1_WIDTH-1 downto 0);
+			add_src2_n 	<= resize(signed(mult_out_c(MULT_OUT_WIDTH-1 downto 15)), ADD_IN2_WIDTH);
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= P_W3;
@@ -422,8 +430,8 @@ begin
 		-- store current weighted power calculated with attack time constant
 		-- if current attack time power > previous used weighted power => increasing power, else decreasing power
 		when P_W4 =>
-			mult_src1_n	<= resize(signed(32767 - beta), WIDTH);
-			mult_src2_n	<= add_out_c(WIDTH-1 downto 0);
+			mult_src1_n	<= add_out_c(MULT_IN1_WIDTH-1 downto 0);
+			mult_src2_n	<= resize(signed(32767 - beta), MULT_IN2_WIDTH);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
 			P_w_fast_n 	<= unsigned(add_out_c(WIDTH-1 downto 0));
@@ -458,10 +466,11 @@ begin
 			if P_w_fast_prev_c > P_w_fast_c then
 				state_n 	<= P_W_DCR2;
 			else
-				state_n 	<= P_W_INCR2;
+				state_n 	<= P_W_INCR2; ------------------- STATE P_dB instead
 			end if;
 		
 		-- increasing power, do nothing, current weighted power is still attack time power
+		-------------------- UNNECESSARY STATE ????? -------------------------------------
 		when P_W_INCR2 =>
 			mult_src1_n		<= (others => '0');
 			mult_src2_n		<= (others => '0');
@@ -481,120 +490,120 @@ begin
 		-- convert the current weighted power to decibel 
 		when P_dB =>
 
-			if unsigned(P_weighted_c) > x"69fe63f3" then -- >92.5dB
+			if unsigned(P_weighted_c) > x"69fe63f3" then 				-- >92.5dB
 				P_dB_n <= to_signed(11, 8);
-			elsif unsigned(P_weighted_c) > x"54319cc9" then -- >91.5dB
+			elsif unsigned(P_weighted_c) > x"54319cc9" then 			-- >91.5dB
 				P_dB_n <= to_signed(10, 8);
-			elsif unsigned(P_weighted_c) > x"42e0a497" then -- >90.5dB
+			elsif unsigned(P_weighted_c) > x"42e0a497" then 			-- >90.5dB
 				P_dB_n <= to_signed(9, 8);
-			elsif unsigned(P_weighted_c) > x"351f68fb" then -- >89.5dB
+			elsif unsigned(P_weighted_c) > x"351f68fb" then 			-- >89.5dB
 				P_dB_n <= to_signed(8, 8);
-			elsif unsigned(P_weighted_c) > x"2a326539" then -- >88.5dB
+			elsif unsigned(P_weighted_c) > x"2a326539" then 			-- >88.5dB
 				P_dB_n <= to_signed(7, 8);
-			elsif unsigned(P_weighted_c) > x"2184a5ce" then -- >87.5dB
+			elsif unsigned(P_weighted_c) > x"2184a5ce" then 			-- >87.5dB
 				P_dB_n <= to_signed(6, 8);
-			elsif unsigned(P_weighted_c) > x"1a9fd9c9" then -- >86.5dB
+			elsif unsigned(P_weighted_c) > x"1a9fd9c9" then 			-- >86.5dB
 				P_dB_n <= to_signed(5, 8);
-			elsif unsigned(P_weighted_c) > x"152605ce" then -- >85.5dB
+			elsif unsigned(P_weighted_c) > x"152605ce" then 			-- >85.5dB
 				P_dB_n <= to_signed(4, 8);
-			elsif unsigned(P_weighted_c) > x"10cc82d6" then -- >84.5dB
+			elsif unsigned(P_weighted_c) > x"10cc82d6" then 			-- >84.5dB
 				P_dB_n <= to_signed(3, 8);
-			elsif unsigned(P_weighted_c) > x"d580472" then -- >83.5dB
+			elsif unsigned(P_weighted_c(27 downto 0)) > x"d580472" then -- >83.5dB
 				P_dB_n <= to_signed(2, 8);
-			elsif unsigned(P_weighted_c) > x"a997066" then -- >82.5dB
+			elsif unsigned(P_weighted_c(27 downto 0)) > x"a997066" then -- >82.5dB
 				P_dB_n <= to_signed(1, 8);
-			elsif unsigned(P_weighted_c) > x"86b5c7b" then -- >81.5dB
+			elsif unsigned(P_weighted_c(27 downto 0)) > x"86b5c7b" then -- >81.5dB
 				P_dB_n <= to_signed(0, 8);
-			elsif unsigned(P_weighted_c) > x"6b01076" then -- >80.5dB
+			elsif unsigned(P_weighted_c(27 downto 0)) > x"6b01076" then -- >80.5dB
 				P_dB_n <= to_signed(-1, 8);
-			elsif unsigned(P_weighted_c) > x"54ff0e6" then -- >79.5dB
+			elsif unsigned(P_weighted_c(27 downto 0)) > x"54ff0e6" then -- >79.5dB
 				P_dB_n <= to_signed(-2, 8);
-			elsif unsigned(P_weighted_c) > x"4383d53" then -- >78.5dB
+			elsif unsigned(P_weighted_c(27 downto 0)) > x"4383d53" then -- >78.5dB
 				P_dB_n <= to_signed(-3, 8);
-			elsif unsigned(P_weighted_c) > x"35a1095" then -- >77.5dB
+			elsif unsigned(P_weighted_c(27 downto 0)) > x"35a1095" then -- >77.5dB
 				P_dB_n <= to_signed(-4, 8);
-			elsif unsigned(P_weighted_c) > x"2a995c8" then -- >76.5dB
+			elsif unsigned(P_weighted_c(27 downto 0)) > x"2a995c8" then -- >76.5dB
 				P_dB_n <= to_signed(-5, 8);
-			elsif unsigned(P_weighted_c) > x"21d66fb" then -- >75.5dB
+			elsif unsigned(P_weighted_c(27 downto 0)) > x"21d66fb" then -- >75.5dB
 				P_dB_n <= to_signed(-6, 8);
-			elsif unsigned(P_weighted_c) > x"1ae0d16" then -- >74.5dB
+			elsif unsigned(P_weighted_c(27 downto 0)) > x"1ae0d16" then -- >74.5dB
 				P_dB_n <= to_signed(-7, 8);
-			elsif unsigned(P_weighted_c) > x"1559a0c" then -- >73.5dB
+			elsif unsigned(P_weighted_c(27 downto 0)) > x"1559a0c" then -- >73.5dB
 				P_dB_n <= to_signed(-8, 8);
-			elsif unsigned(P_weighted_c) > x"10f580b" then -- >72.5dB
+			elsif unsigned(P_weighted_c(27 downto 0)) > x"10f580b" then -- >72.5dB
 				P_dB_n <= to_signed(-9, 8);
-			elsif unsigned(P_weighted_c) > x"d78940" then -- >71.5dB
+			elsif unsigned(P_weighted_c(23 downto 0)) > x"d78940" then 	-- >71.5dB
 				P_dB_n <= to_signed(-10, 8);
-			elsif unsigned(P_weighted_c) > x"ab34d9" then -- >70.5dB
+			elsif unsigned(P_weighted_c(23 downto 0)) > x"ab34d9" then 	-- >70.5dB
 				P_dB_n <= to_signed(-11, 8);
-			elsif unsigned(P_weighted_c) > x"87fe7e" then -- >69.5dB
+			elsif unsigned(P_weighted_c(23 downto 0)) > x"87fe7e" then 	-- >69.5dB
 				P_dB_n <= to_signed(-12, 8);
-			elsif unsigned(P_weighted_c) > x"6c0622" then -- >68.5dB
+			elsif unsigned(P_weighted_c(23 downto 0)) > x"6c0622" then 	-- >68.5dB
 				P_dB_n <= to_signed(-13, 8);
-			elsif unsigned(P_weighted_c) > x"55ce76" then -- >67.5dB
+			elsif unsigned(P_weighted_c(23 downto 0)) > x"55ce76" then 	-- >67.5dB
 				P_dB_n <= to_signed(-14, 8);
-			elsif unsigned(P_weighted_c) > x"442894" then -- >66.5dB
+			elsif unsigned(P_weighted_c(23 downto 0)) > x"442894" then 	-- >66.5dB
 				P_dB_n <= to_signed(-15, 8);
-			elsif unsigned(P_weighted_c) > x"3623e6" then -- >65.5dB
+			elsif unsigned(P_weighted_c(23 downto 0)) > x"3623e6" then 	-- >65.5dB
 				P_dB_n <= to_signed(-16, 8);
-			elsif unsigned(P_weighted_c) > x"2b014f" then -- >64.5dB
+			elsif unsigned(P_weighted_c(23 downto 0)) > x"2b014f" then 	-- >64.5dB
 				P_dB_n <= to_signed(-17, 8);
-			elsif unsigned(P_weighted_c) > x"222902" then -- >63.5dB
+			elsif unsigned(P_weighted_c(23 downto 0)) > x"222902" then 	-- >63.5dB
 				P_dB_n <= to_signed(-18, 8);
-			elsif unsigned(P_weighted_c) > x"1b2268" then -- >62.5dB
+			elsif unsigned(P_weighted_c(23 downto 0)) > x"1b2268" then 	-- >62.5dB
 				P_dB_n <= to_signed(-19, 8);
-			elsif unsigned(P_weighted_c) > x"158dba" then -- >61.5dB
+			elsif unsigned(P_weighted_c(23 downto 0)) > x"158dba" then 	-- >61.5dB
 				P_dB_n <= to_signed(-20, 8);
-			elsif unsigned(P_weighted_c) > x"111ee3" then -- >60.5dB
+			elsif unsigned(P_weighted_c(23 downto 0)) > x"111ee3" then 	-- >60.5dB
 				P_dB_n <= to_signed(-21, 8);
-			elsif unsigned(P_weighted_c) > x"d9973" then -- >59.5dB
+			elsif unsigned(P_weighted_c(19 downto 0)) > x"d9973" then 	-- >59.5dB
 				P_dB_n <= to_signed(-22, 8);
-			elsif unsigned(P_weighted_c) > x"acd6a" then -- >58.5dB
+			elsif unsigned(P_weighted_c(19 downto 0)) > x"acd6a" then 	-- >58.5dB
 				P_dB_n <= to_signed(-23, 8);
-			elsif unsigned(P_weighted_c) > x"894a6" then -- >57.5dB
+			elsif unsigned(P_weighted_c(19 downto 0)) > x"894a6" then 	-- >57.5dB
 				P_dB_n <= to_signed(-24, 8);
-			elsif unsigned(P_weighted_c) > x"6d0dc" then -- >56.5dB
+			elsif unsigned(P_weighted_c(19 downto 0)) > x"6d0dc" then 	-- >56.5dB
 				P_dB_n <= to_signed(-25, 8);
-			elsif unsigned(P_weighted_c) > x"569fe" then -- >55.5dB
+			elsif unsigned(P_weighted_c(19 downto 0)) > x"569fe" then 	-- >55.5dB
 				P_dB_n <= to_signed(-26, 8);
-			elsif unsigned(P_weighted_c) > x"44cef" then -- >54.5dB
+			elsif unsigned(P_weighted_c(19 downto 0)) > x"44cef" then 	-- >54.5dB
 				P_dB_n <= to_signed(-27, 8);
-			elsif unsigned(P_weighted_c) > x"36a81" then -- >53.5dB
+			elsif unsigned(P_weighted_c(19 downto 0)) > x"36a81" then 	-- >53.5dB
 				P_dB_n <= to_signed(-28, 8);
-			elsif unsigned(P_weighted_c) > x"2b6a4" then -- >52.5dB
+			elsif unsigned(P_weighted_c(19 downto 0)) > x"2b6a4" then 	-- >52.5dB
 				P_dB_n <= to_signed(-29, 8);
-			elsif unsigned(P_weighted_c) > x"227c6" then -- >51.5dB
+			elsif unsigned(P_weighted_c(19 downto 0)) > x"227c6" then 	-- >51.5dB
 				P_dB_n <= to_signed(-30, 8);
-			elsif unsigned(P_weighted_c) > x"1b64a" then -- >50.5dB
+			elsif unsigned(P_weighted_c(19 downto 0)) > x"1b64a" then 	-- >50.5dB
 				P_dB_n <= to_signed(-31, 8);
-			elsif unsigned(P_weighted_c) > x"15c26" then -- >49.5dB
+			elsif unsigned(P_weighted_c(19 downto 0)) > x"15c26" then 	-- >49.5dB
 				P_dB_n <= to_signed(-32, 8);
-			elsif unsigned(P_weighted_c) > x"1148b" then -- >48.5dB
+			elsif unsigned(P_weighted_c(19 downto 0)) > x"1148b" then 	-- >48.5dB
 				P_dB_n <= to_signed(-33, 8);
-			elsif unsigned(P_weighted_c) > x"dbab" then -- >47.5dB
+			elsif unsigned(P_weighted_c(15 downto 0)) > x"dbab" then 	-- >47.5dB
 				P_dB_n <= to_signed(-34, 8);
-			elsif unsigned(P_weighted_c) > x"ae7d" then -- >46.5dB
+			elsif unsigned(P_weighted_c(15 downto 0)) > x"ae7d" then 	-- >46.5dB
 				P_dB_n <= to_signed(-35, 8);
-			elsif unsigned(P_weighted_c) > x"8a9a" then -- >45.5dB
+			elsif unsigned(P_weighted_c(15 downto 0)) > x"8a9a" then 	-- >45.5dB
 				P_dB_n <= to_signed(-36, 8);
-			elsif unsigned(P_weighted_c) > x"6e18" then -- >44.5dB
+			elsif unsigned(P_weighted_c(15 downto 0)) > x"6e18" then 	-- >44.5dB
 				P_dB_n <= to_signed(-37, 8);
-			elsif unsigned(P_weighted_c) > x"5774" then -- >43.5dB
+			elsif unsigned(P_weighted_c(15 downto 0)) > x"5774" then 	-- >43.5dB
 				P_dB_n <= to_signed(-38, 8);
-			elsif unsigned(P_weighted_c) > x"4577" then -- >42.5dB
+			elsif unsigned(P_weighted_c(15 downto 0)) > x"4577" then 	-- >42.5dB
 				P_dB_n <= to_signed(-39, 8);
-			elsif unsigned(P_weighted_c) > x"372e" then -- >41.5dB
+			elsif unsigned(P_weighted_c(15 downto 0)) > x"372e" then 	-- >41.5dB
 				P_dB_n <= to_signed(-40, 8);
-			elsif unsigned(P_weighted_c) > x"2bd5" then -- >40.5dB
+			elsif unsigned(P_weighted_c(15 downto 0)) > x"2bd5" then 	-- >40.5dB
 				P_dB_n <= to_signed(-41, 8);
-			elsif unsigned(P_weighted_c) > x"22d1" then -- >39.5dB
+			elsif unsigned(P_weighted_c(15 downto 0)) > x"22d1" then 	-- >39.5dB
 				P_dB_n <= to_signed(-42, 8);
-			elsif unsigned(P_weighted_c) > x"1ba8" then -- >38.5dB
+			elsif unsigned(P_weighted_c(15 downto 0)) > x"1ba8" then 	-- >38.5dB
 				P_dB_n <= to_signed(-43, 8);
-			elsif unsigned(P_weighted_c) > x"15f8" then -- >37.5dB
+			elsif unsigned(P_weighted_c(15 downto 0)) > x"15f8" then 	-- >37.5dB
 				P_dB_n <= to_signed(-44, 8);
 			
-			else										-- >=0dB
+			else														-- >=0dB
 				P_dB_n <= to_signed(-82, 8);
 			end if;			
 			state_n <= FETCH_GAIN;
@@ -613,7 +622,7 @@ begin
 		-- multiply current sample with the gain fetched from LUT
 		when GAIN =>
 			mult_src1_n	<= resize(curr_sample_c, WIDTH);
-			mult_src2_n	<= signed(x"0000" & '0' & i_gain);
+			mult_src2_n	<= signed("00" & i_gain);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
@@ -625,41 +634,36 @@ begin
 			end if;
 		
 		-- store output sample 
+		-------------------- UNNECESSARY STATE ????? -------------------------------------
+		-- latch out from mult_out instead
 		when P_OUT =>
 			mult_src1_n	<= (others => '0');
 			mult_src2_n	<= (others => '0');
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
 			agc_out_n 	<= mult_out_c(30 downto 15);
------------------------------------------------------------------------------------------------------------------------
---			if delay_c = '0' then
---				delay_n <= '1';
---				state_n <= P_OUT;
---			else
---				delay_n <= '0';
-				state_n <= LATCH_OUT_SAMPLE;
---			end if;
+			state_n 	<= LATCH_OUT_SAMPLE;
 			
 		-- save attack time power as previous attack time power to be used next time
 		-- save current weighted power as previous weighted power to be used next time
 		-- latch out processed sample and signal when done
 		when LATCH_OUT_SAMPLE =>
-			mult_src1_n <= (others => '0');
-			mult_src2_n <= (others => '0');
-			add_src1_n 	<= (others => '0');
-			add_src2_n 	<= (others => '0');
-			inout_cnt_n <= inout_cnt_c - 1;
-			o_sample	<= agc_out_c(to_integer(inout_cnt_c));
+			mult_src1_n 			<= (others => '0');
+			mult_src2_n 			<= (others => '0');
+			add_src1_n 				<= (others => '0');
+			add_src2_n 				<= (others => '0');
+			inout_cnt_n 			<= inout_cnt_c - 1;
+			o_sample				<= agc_out_c(to_integer(inout_cnt_c));
 			if inout_cnt_c = 15 then
 				P_w_fast_prev_n 	<= P_w_fast_c;
 				P_weighted_prev_n 	<= P_weighted_c;		
 				state_n				<= LATCH_OUT_SAMPLE;
 			elsif inout_cnt_c = 0 then
-			  inout_cnt_n 	<= (others => '0');
-				o_done		<= '1';
-				state_n		<= HOLD;
+			  inout_cnt_n 			<= (others => '0');
+				o_done				<= '1';
+				state_n				<= HOLD;
 			else
-				state_n 	<= LATCH_OUT_SAMPLE;
+				state_n 			<= LATCH_OUT_SAMPLE;
 			end if;
 
 	end case;

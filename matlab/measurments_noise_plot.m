@@ -1,45 +1,30 @@
 clear all;
 clf;
 
-P_ref =     [60.2 66.3 70.5 75.2 80.0 85.5 91.0 95.0 98.0 103];
-P_no_hp =   [60.3 65.7 70.3 74.8 79.6 82.1 83.7 84.5 85.1 85.2];
-P_agc_off = [65.2 69.7 74.5 79.4 82.3 83.9 84.7 85.0 85.3 84.3];
-P_agc_on =  [66.5 71.0 75.8 79.9 82.0 82.8 81.8 79.2 75.8 74.3];
+P_ideal =   [55:82 ones(1,28).*82];
+P_ref =    [59.5 65   69   74   79   83   88   92   96   101  106];
+P_peltor = [66   73.1 75.1 76.5 80.3 80.4 80.6 81.2 81.3 81.5 81.5];
+P_fpga =   [59.5 67   69.4 72.7 78.2 80.8 80.9 79.4 78.8 79.1 79.4];
+P_ideal_cmp = [P_ref(1:5), ones(1,6).*82];
 
-P_ref2 =    [60.5 66.5 71.2 77.2 81.0 85.0 89.5 94.0 99.5];
-P_no_hp2 =  [60.6 65.4 70.5 75.4 79.1 81.2 82.4 82.9 83.2];
-P_peltor =  [68.6 72.4 77.0 77.5 76.3 76.7 79.0 78.4 79.2];
-% P_out = zeros(size(P_in));
-% 
-% for i = 1:length(P_in)
-%     P_out(i) = mean(abs(audioread(['recording' num2str(i) '.wav']) .* 2^15));
-% end
-% 
-% P_out_dB = 10 * log10(P_out .^ 2);
-% 
-% P_out_ref = ones(1,100).*82;
-% P_out_ref(1:81) = 1:81;
-% plot(1:100, P_out_ref)
-% hold on;
-% grid on;
-% plot(P_in, P_out_dB, 'ro')
-subplot(121)
-plot(60:105, [60:82 ones(1,23).*82], 'black--')
+figure(1)
+plot(55:110, P_ideal, 'black--', 'Linewidth', 2)
 hold on;
-plot(P_ref, P_no_hp, 'r-')
-plot(P_ref, P_agc_off, 'b-')
-plot(P_ref, P_agc_on, 'g-')
 grid on
-xlabel('P_{reference} / dB')
-ylabel('P_{measured} / dB')
-legend('Ideal', 'No hearing protectors', 'AGC off', 'AGC on', 'Location', 'southeast')
+plot(P_ref, P_peltor, 'bd-', 'Linewidth', 2)
+plot(P_ref, P_fpga, 'rs-', 'Linewidth', 2)
+axis([59 107 59 85])
+xlabel('P_{noise} (dB)')
+ylabel('P_{measured} (dB)')
+legend('Ideal', 'Reference (Peltor Tactical 7)', 'This thesis (FPGA + Peltor Tactical 7-SH)', 'Location', 'southeast')
 
-subplot(122)
-plot(60:90, [60:82 ones(1,8).*82], 'black--')
+figure(2)
+plot(P_ref, zeros(size(P_ref)), 'black--', 'Linewidth', 2)
 hold on;
-plot(P_no_hp, P_agc_off, 'b-')
-plot(P_no_hp, P_agc_on, 'g-')
-grid on
-xlabel('P_{without hearing protectors} / dB')
-ylabel('P_{measured} / dB')
-legend('Ideal', 'AGC off', 'AGC on', 'Location', 'southeast')
+grid on;
+plot(P_ref, (P_peltor-P_ideal_cmp), 'b-d', 'Linewidth', 2)
+plot(P_ref, (P_fpga-P_ideal_cmp), 'r-s', 'Linewidth', 2)
+axis([59 107 -5 10])
+xlabel('P_{noise} (dB)')
+ylabel('Differense from ideal curve (dB)')
+legend('Ideal', 'Reference (Peltor Tactical 7)', 'This thesis (FPGA + Peltor Tactical 7-SH)', 'Location', 'northeast')

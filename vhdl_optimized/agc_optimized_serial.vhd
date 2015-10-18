@@ -28,22 +28,22 @@ end agc;
 architecture Behavioral of agc is
 	
 	constant WIDTH 			: integer 	:= 32;									-- general register width
-	constant MULT_IN1_WIDTH : integer	:= 32;									-- width of input 1 to multiplier
-	constant MULT_IN2_WIDTH : integer	:= 17;									-- width of input 2 to multiplier
+	constant MULT_IN1_WIDTH : integer	:= WIDTH;									-- width of input 1 to multiplier
+	constant MULT_IN2_WIDTH : integer	:= 16;									-- width of input 2 to multiplier
 	constant MULT_OUT_WIDTH : integer	:= MULT_IN1_WIDTH + MULT_IN2_WIDTH;		-- width of multiplier output
-	constant ADD_IN1_WIDTH	: integer	:= 52;									-- width of input 1 to adder
-	constant ADD_IN2_WIDTH	: integer	:= 49;									-- width of input 2 to adder
-	constant ADD_OUT_WIDTH	: integer	:= ADD_IN1_WIDTH;						-- width of adder output
-	constant FILTER_BITS	: integer	:= 9; 									-- 10 bits = 2^9
+	constant ADD_IN_WIDTH	: integer	:= 48;									-- width of input to adder
+	constant ADD_OUT_WIDTH	: integer	:= ADD_IN_WIDTH;						-- width of adder output
+	constant HP_FILTER_BITS	: integer	:= 15; 									-- 15 bits = 2^16
+	constant EQ_FILTER_BITS	: integer	:= 8; 									-- 9 bits = 2^8
 	
 	signal delay_c, delay_n 		: std_logic				:= '0';				-- one bit delay counter
 	signal inout_cnt_c, inout_cnt_n : unsigned(3 downto 0) 	:= (others => '0'); -- counter for latching input and output sample
 	
 	-- HIGH PASS FILTER
 	-- high pass filter coefficients
-	constant hp_b_0 : signed(WIDTH/2-1 downto 0) := to_signed(504, WIDTH/2);
-	constant hp_b_1 : signed(WIDTH/2-1 downto 0) := to_signed(-504,WIDTH/2);
-	constant hp_a_1 : signed(WIDTH/2-1 downto 0) := to_signed(496, WIDTH/2); -- OBS changed sign
+	constant hp_b_0 : signed(HP_FILTER_BITS downto 0) := to_signed(32250, HP_FILTER_BITS+1);
+	constant hp_b_1 : signed(HP_FILTER_BITS downto 0) := to_signed(-32250,HP_FILTER_BITS+1);
+	constant hp_a_1 : signed(HP_FILTER_BITS downto 0) := to_signed(31736, HP_FILTER_BITS+1); -- OBS changed sign
 	
 	signal hp_x_c, hp_x_n 			: signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- current input sample
 	signal hp_x_prev_c, hp_x_prev_n : signed(WIDTH/2-1 downto 0) 	:= (others => '0'); -- previous input sample
@@ -51,11 +51,11 @@ architecture Behavioral of agc is
 	
 	-- EQUALIZER FILTER
 	-- equalizer filter coefficients
-	constant eq_b_0 : signed(MULT_IN2_WIDTH-1 downto 0) := to_signed(55484, MULT_IN2_WIDTH);
-	constant eq_b_1 : signed(MULT_IN2_WIDTH-1 downto 0) := to_signed(-313, MULT_IN2_WIDTH);
-	constant eq_b_2 : signed(MULT_IN2_WIDTH-1 downto 0) := to_signed(-55123, MULT_IN2_WIDTH);
-	constant eq_a_1 : signed(MULT_IN2_WIDTH-1 downto 0) := to_signed(313, MULT_IN2_WIDTH); 		-- OBS changed sign
-	constant eq_a_2 : signed(MULT_IN2_WIDTH-1 downto 0) := to_signed(151, MULT_IN2_WIDTH); 		-- OBS changed sign
+	constant eq_b_0 : signed(MULT_IN2_WIDTH-1 downto 0) := to_signed(27742, MULT_IN2_WIDTH);
+	constant eq_b_1 : signed(MULT_IN2_WIDTH-1 downto 0) := to_signed(-156, MULT_IN2_WIDTH);
+	constant eq_b_2 : signed(MULT_IN2_WIDTH-1 downto 0) := to_signed(-27561, MULT_IN2_WIDTH);
+	constant eq_a_1 : signed(MULT_IN2_WIDTH-1 downto 0) := to_signed(156, MULT_IN2_WIDTH); 		-- OBS changed sign
+	constant eq_a_2 : signed(MULT_IN2_WIDTH-1 downto 0) := to_signed(75, MULT_IN2_WIDTH); 		-- OBS changed sign
 	
 	signal eq_x_c, eq_x_n 						: signed(WIDTH-1 downto 0) 	:= (others => '0'); -- current input sample
 	signal eq_x_prev_c, eq_x_prev_n 			: signed(WIDTH-1 downto 0) 	:= (others => '0'); -- previous input sample
@@ -80,14 +80,14 @@ architecture Behavioral of agc is
 	signal mult_src1_c, mult_src1_n : signed(MULT_IN1_WIDTH-1 downto 0) := (others => '0');
 	signal mult_src2_c, mult_src2_n : signed(MULT_IN2_WIDTH-1 downto 0) := (others => '0');
 	signal mult_out_c, mult_out_n 	: signed(MULT_OUT_WIDTH-1 downto 0) := (others => '0');
-	signal add_src1_c, add_src1_n 	: signed(ADD_IN1_WIDTH-1 downto 0) 	:= (others => '0');
-	signal add_src2_c, add_src2_n 	: signed(ADD_IN2_WIDTH-1 downto 0) 	:= (others => '0');
+	signal add_src1_c, add_src1_n 	: signed(ADD_IN_WIDTH-1 downto 0) 	:= (others => '0');
+	signal add_src2_c, add_src2_n 	: signed(ADD_IN_WIDTH-1 downto 0) 	:= (others => '0');
 	signal add_out_c, add_out_n 	: signed(ADD_OUT_WIDTH-1 downto 0) 	:= (others => '0');
 		
 	-- states for FSM    
 	type state_type is (HOLD, LATCH_IN_SAMPLE, HP_CALC1, HP_CALC2, HP_CALC3, HP_CALC4, 
 						EQ_CALC1, EQ_CALC2, EQ_CALC3, EQ_CALC4, EQ_CALC5, EQ_CALC6, FINISH_CALC,
-						P_CURR, P_W1, P_W2, P_W3, P_W4, P_W_INCR1, P_W_INCR2, P_W_DCR1, P_W_DCR2,
+						P_CURR, P_W1, P_W2, P_W3, P_W4, P_W_INCR1, P_W_DCR1, P_W_DCR2,
 						P_dB, FETCH_GAIN, GAIN, P_OUT, LATCH_OUT_SAMPLE); 
 	signal state_c, state_n : state_type := HOLD;
 	
@@ -227,7 +227,7 @@ begin
 		when HP_CALC2 =>
 			mult_src1_n <= resize(hp_x_prev_c, MULT_IN1_WIDTH);
 			mult_src2_n <= resize(hp_b_1, MULT_IN2_WIDTH);
-			add_src1_n 	<= resize(mult_out_c, ADD_IN1_WIDTH);
+			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -241,8 +241,8 @@ begin
 		when HP_CALC3 =>
 			mult_src1_n <= resize(hp_y_prev_c, MULT_IN1_WIDTH);
 			mult_src2_n <= resize(hp_a_1, MULT_IN2_WIDTH);
-			add_src1_n 	<= resize(mult_out_c, ADD_IN1_WIDTH);
-			add_src2_n 	<= add_out_c(ADD_IN2_WIDTH-1 downto 0);
+			add_src1_n 	<= mult_out_c;
+			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= HP_CALC3;
@@ -255,8 +255,8 @@ begin
 		when HP_CALC4 =>
 			mult_src1_n <= (others => '0');
 			mult_src2_n <= (others => '0');
-			add_src1_n 	<= resize(mult_out_c, ADD_IN1_WIDTH);
-			add_src2_n 	<= add_out_c(ADD_IN2_WIDTH-1 downto 0);
+			add_src1_n 	<= mult_out_c;
+			add_src2_n 	<= add_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= HP_CALC4;
@@ -272,9 +272,9 @@ begin
 		-- multiply current input sample with filter coefficient
 		when EQ_CALC1 =>
 			hp_x_prev_n <= hp_x_c;
-			hp_y_prev_n <= add_out_c(WIDTH/2-1+FILTER_BITS downto FILTER_BITS);
-			eq_x_n		<= add_out_c(WIDTH-1+FILTER_BITS downto FILTER_BITS);
-			mult_src1_n <= add_out_c(WIDTH-1+FILTER_BITS downto FILTER_BITS);
+			hp_y_prev_n <= add_out_c(WIDTH/2-1+HP_FILTER_BITS downto HP_FILTER_BITS);
+			eq_x_n		<= add_out_c(WIDTH-1+HP_FILTER_BITS downto HP_FILTER_BITS);
+			mult_src1_n <= add_out_c(WIDTH-1+HP_FILTER_BITS downto HP_FILTER_BITS);
 			mult_src2_n <= eq_b_0;
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
@@ -290,7 +290,7 @@ begin
 		when EQ_CALC2 =>
 			mult_src1_n <= eq_x_prev_c;
 			mult_src2_n <= eq_b_1;
-			add_src1_n 	<= resize(mult_out_c, ADD_IN1_WIDTH);
+			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -304,8 +304,8 @@ begin
 		when EQ_CALC3 =>
 			mult_src1_n <= eq_x_prev_prev_c;
 			mult_src2_n <= eq_b_2;
-			add_src1_n 	<= add_out_c(ADD_IN1_WIDTH-1 downto 0);
-			add_src2_n 	<= resize(mult_out_c, ADD_IN2_WIDTH);
+			add_src1_n 	<= add_out_c;
+			add_src2_n 	<= mult_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= EQ_CALC3;
@@ -318,8 +318,8 @@ begin
 		when EQ_CALC4 =>
 			mult_src1_n <= eq_y_prev_c;
 			mult_src2_n <= eq_a_1;
-			add_src1_n 	<= add_out_c(ADD_IN1_WIDTH-1 downto 0);
-			add_src2_n 	<= resize(mult_out_c, ADD_IN2_WIDTH);
+			add_src1_n 	<= add_out_c;
+			add_src2_n 	<= mult_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= EQ_CALC4;
@@ -332,8 +332,8 @@ begin
 		when EQ_CALC5 =>
 			mult_src1_n <= eq_y_prev_prev_c;
 			mult_src2_n <= eq_a_2;
-			add_src1_n 	<= add_out_c(ADD_IN1_WIDTH-1 downto 0);
-			add_src2_n 	<= resize(mult_out_c, ADD_IN2_WIDTH);
+			add_src1_n 	<= add_out_c;
+			add_src2_n 	<= mult_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= EQ_CALC5;
@@ -346,8 +346,8 @@ begin
 		when EQ_CALC6 =>
 			mult_src1_n <= (others => '0');
 			mult_src2_n <= (others => '0');
-			add_src1_n 	<= add_out_c(ADD_IN1_WIDTH-1 downto 0);
-			add_src2_n 	<= resize(mult_out_c, ADD_IN2_WIDTH);
+			add_src1_n 	<= add_out_c;
+			add_src2_n 	<= mult_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= EQ_CALC6;
@@ -362,9 +362,9 @@ begin
 			eq_x_prev_n			<= eq_x_c;
 			eq_x_prev_prev_n	<= eq_x_prev_c;
 			----------------------------------------------------------------------------------------
-			eq_y_prev_n			<= resize(add_out_c(WIDTH-1+FILTER_BITS downto FILTER_BITS), WIDTH);
+			eq_y_prev_n			<= resize(add_out_c(WIDTH-1+EQ_FILTER_BITS downto EQ_FILTER_BITS), WIDTH);
 			eq_y_prev_prev_n	<= eq_y_prev_c;			
-			curr_sample_n		<= add_out_c(WIDTH/2-1+FILTER_BITS+7 downto FILTER_BITS+7);
+			curr_sample_n		<= add_out_c(WIDTH/2-1+EQ_FILTER_BITS+7 downto EQ_FILTER_BITS+7);
 			state_n				<= P_CURR;
 			
 ----------------------------------------------------------------------------------			
@@ -402,7 +402,7 @@ begin
 		when P_W2 =>
 			mult_src1_n	<= signed(P_w_fast_prev_c);
 			mult_src2_n	<= resize(signed(32767 - alpha), MULT_IN2_WIDTH);
-			add_src1_n 	<= resize(mult_out_c(MULT_OUT_WIDTH-1 downto 15), ADD_IN1_WIDTH);
+			add_src1_n 	<= mult_out_c;
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
 				delay_n <= '1';
@@ -416,8 +416,8 @@ begin
 		when P_W3 =>
 			mult_src1_n	<= (others => '0');
 			mult_src2_n	<= (others => '0');
-			add_src1_n 	<= add_out_c(ADD_IN1_WIDTH-1 downto 0);
-			add_src2_n 	<= resize(signed(mult_out_c(MULT_OUT_WIDTH-1 downto 15)), ADD_IN2_WIDTH);
+			add_src1_n 	<= add_out_c;
+			add_src2_n 	<= mult_out_c;
 			if delay_c = '0' then
 				delay_n <= '1';
 				state_n <= P_W3;
@@ -430,15 +430,16 @@ begin
 		-- store current weighted power calculated with attack time constant
 		-- if current attack time power > previous used weighted power => increasing power, else decreasing power
 		when P_W4 =>
-			mult_src1_n	<= add_out_c(MULT_IN1_WIDTH-1 downto 0);
 			mult_src2_n	<= resize(signed(32767 - beta), MULT_IN2_WIDTH);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
-			P_w_fast_n 	<= unsigned(add_out_c(WIDTH-1 downto 0));
-			if unsigned(add_out_c(WIDTH-1 downto 0)) > P_weighted_prev_c then 
+			P_w_fast_n 	<= unsigned(add_out_c(WIDTH-1+15 downto 15));
+			if unsigned(add_out_c(WIDTH-1+15 downto 15)) > P_weighted_prev_c then 
 				state_n <= P_W_INCR1;
+				mult_src1_n	<= add_out_c(MULT_IN1_WIDTH-1+15 downto 15);
 			else
 				state_n <= P_W_DCR1;
+				mult_src1_n	<= signed(P_weighted_prev_c);
 			end if;
 		
 		-- increasing power, store power weighted with attack time constant as current weighted power
@@ -449,10 +450,10 @@ begin
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
 			P_weighted_n <= P_w_fast_c;
-			if P_w_fast_prev_c > P_w_fast_c then
+			if P_w_fast_prev_c >= P_w_fast_c then
 				state_n <= P_W_DCR2;
 			else
-				state_n <= P_W_INCR2;
+				state_n <= P_dB;
 			end if;
 			
 		-- decreasing power, store previous used power as current weighted power
@@ -463,20 +464,11 @@ begin
 			add_src1_n 		<= (others => '0');
 			add_src2_n 		<= (others => '0');
 			P_weighted_n 	<= P_weighted_prev_c;
-			if P_w_fast_prev_c > P_w_fast_c then
+			if P_w_fast_prev_c >= P_w_fast_c then
 				state_n 	<= P_W_DCR2;
 			else
-				state_n 	<= P_W_INCR2; ------------------- STATE P_dB instead
+				state_n 	<= P_dB;
 			end if;
-		
-		-- increasing power, do nothing, current weighted power is still attack time power
-		-------------------- UNNECESSARY STATE ????? -------------------------------------
-		when P_W_INCR2 =>
-			mult_src1_n		<= (others => '0');
-			mult_src2_n		<= (others => '0');
-			add_src1_n 		<= (others => '0');
-			add_src2_n 		<= (others => '0');
-			state_n 		<= P_dB;
 		
 		-- decreasing power, store release time weighted power as current weighted power
 		when P_W_DCR2 =>
@@ -622,7 +614,7 @@ begin
 		-- multiply current sample with the gain fetched from LUT
 		when GAIN =>
 			mult_src1_n	<= resize(curr_sample_c, WIDTH);
-			mult_src2_n	<= signed("00" & i_gain);
+			mult_src2_n	<= signed('0' & i_gain);
 			add_src1_n 	<= (others => '0');
 			add_src2_n 	<= (others => '0');
 			if delay_c = '0' then
@@ -659,7 +651,7 @@ begin
 				P_weighted_prev_n 	<= P_weighted_c;		
 				state_n				<= LATCH_OUT_SAMPLE;
 			elsif inout_cnt_c = 0 then
-			  inout_cnt_n 			<= (others => '0');
+				inout_cnt_n 		<= (others => '0');
 				o_done				<= '1';
 				state_n				<= HOLD;
 			else

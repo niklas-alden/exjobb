@@ -1,0 +1,17 @@
+# Version:1.0 MMMC View Definition File
+# Do Not Remove Above Line
+create_rc_corner -name FF -T {25} -preRoute_res {1.0} -preRoute_cap {1.0} -preRoute_clkres {0.0} -preRoute_clkcap {0.0} -postRoute_res {1.0} -postRoute_cap {1.0} -postRoute_xcap {1.0} -postRoute_clkres {0.0} -postRoute_clkcap {0.0}
+create_rc_corner -name SS -T {125} -preRoute_res {1.0} -preRoute_cap {1.0} -preRoute_clkres {0.0} -preRoute_clkcap {0.0} -postRoute_res {1.0} -postRoute_cap {1.0} -postRoute_xcap {1.0} -postRoute_clkres {0.0} -postRoute_clkcap {0.0}
+create_op_cond -name nom_1.20V_25C -library_file {liblinks/CORE65LPHVT_nom_1.20V_25C.lib} -P {1.0} -V {1.2} -T {25}
+create_op_cond -name wc_1.10V_125C -library_file {liblinks/CORE65LPHVT_wc_1.10V_125C.lib} -P {1.2} -V {1.1} -T {125}
+create_library_set -name FF -timing {liblinks/CORE65LPHVT_nom_1.20V_25C.lib /usr/local-eit/cad2/cmpstm/stm065v536/CLOCK65LPHVT_3.1/libs/CLOCK65LPHVT_nom_1.20V_25C.lib /net/cas-13/export/space/eit-oae/projects/tapeOutOct2012/digital/backend/lib/Pads_Oct2012.lib}
+create_library_set -name SS -timing {liblinks/CORE65LPHVT_wc_1.10V_125C.lib /usr/local-eit/cad2/cmpstm/stm065v536/CLOCK65LPHVT_3.1/libs/CLOCK65LPHVT_wc_1.10V_125C.lib /net/cas-13/export/space/eit-oae/projects/tapeOutOct2012/digital/backend/lib/Pads_Oct2012.lib}
+create_constraint_mode -name clock_constraints -sdc_files {../netlists/agc_synth.sdc}
+create_delay_corner -name FF -library_set {FF} -opcond_library {CORE65LPHVT} -opcond {nom_1.20V_25C} -rc_corner {FF}
+create_delay_corner -name SS -library_set {SS} -opcond_library {CORE65LPHVT} -opcond {wc_1.10V_125C} -rc_corner {SS}
+create_analysis_view -name FF -constraint_mode {clock_constraints} -delay_corner {FF}
+create_analysis_view -name SS -constraint_mode {clock_constraints} -delay_corner {SS}
+#set_analysis_view -setup {SS FF} -hold {SS FF}
+set_analysis_view -setup {SS} -hold {FF}
+#set_analysis_view -setup {FF} -hold {FF}
+#set_analysis_view -setup {SS} -hold {SS}

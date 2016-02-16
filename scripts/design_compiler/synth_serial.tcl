@@ -1,7 +1,7 @@
 set synt_scr_path "/home/piraten/ael10nal/Desktop/asic_final/script"
 source $synt_scr_path/design_setup.tcl
 
-analyze -library WORK -format vhdl {./vhdl/agc_optimized_serial.vhd ./vhdl/gain_lut_dual_input.vhd ./vhdl/top_agc_only_serial_EITpads.vhd}
+analyze -library WORK -format vhdl {../vhdl_asic/agc_optimized_serial.vhd ../vhdl_asic/gain_lut_dual_input.vhd ../vhdl_asic/top_agc_only_serial_EITpads.vhd}
 
 elaborate top -library WORK -architecture Behavioral
 

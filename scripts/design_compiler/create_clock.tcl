@@ -1,6 +1,6 @@
-create_clock clk -period 12 -name clk
+create_clock clk -period 10 -name clk
 
-set_clock_uncertainty 0.25 clk
+set_clock_uncertainty 0.1 clk
 set_fix_hold clk
 
 set_input_delay 0.75 -clock clk [remove_from_collection [all_inputs] {clk}]

@@ -9,7 +9,7 @@ in = audioread('Speech_all.wav'); in = in./max(abs(in)).*1;
 % in = audioread('p50_male.wav'); in = in(1:5e4).*1;
 % in = audioread('p50_female.wav'); in = in(1:5e4).*1;
 % in = [[0:0.1:1] [0.9:-0.1:0] 0 0 0 0 0 0 0];
-
+in(1e5:1.6e5) = 0;
 
 LUT = int16(agc_lut_dB() .* 2^(bits-1));    % Lookup table with gain values
 
@@ -41,10 +41,10 @@ gain_used = zeros(size(in), 'double');
 out = zeros(size(in));
 
 % time constants
-alpha = int32(0.02 .* 2^(16-1));    % attack time ~ 1ms
-beta  = int32(0.001 .* 2^(16-1));   % release time ~ 300ms
+alpha = int32(0.01 .* 2^(16-1));    % attack time ~ 1ms
+beta  = int32(0.0002 .* 2^(16-1));   % release time ~ 300ms
 
-P_x_fast = zeros(size(in));
+P_x_fast = zeros(size(in), 'int32');
 % P_weighted = zeros(size(in));
 
 for n = 1:length(in)

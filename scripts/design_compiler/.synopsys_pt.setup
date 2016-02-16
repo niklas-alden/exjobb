@@ -10,15 +10,15 @@
 
 set power_enable_analysis true
 
-set search_path "$env(STM065_DIR)/IO65LPHVT_SF_1V8_50A_7M4X0Y2Z_7.0/libs \
+set search_path "/net/cas-13/export/space/eit-oae/projects/tapeOutOct2012/digital/backend/lib \
 		 $env(STM065_DIR)/CORE65LPHVT_5.1/libs \
                  . \
 		 $search_path"
 
-set link_library "* IO65LPHVT_SF_1V8_50A_7M4X0Y2Z_nom_1.00V_1.80V_25C.db \
+set link_library "* Pads_Oct2012.db \
                   CORE65LPHVT_nom_1.20V_25C.db"
 
-set target_library "IO65LPHVT_SF_1V8_50A_7M4X0Y2Z_nom_1.00V_1.80V_25C.db \
+set target_library "Pads_Oct2012.db \
                     CORE65LPHVT_nom_1.20V_25C.db"
 
 # No symbol library for IO-cells.

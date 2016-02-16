@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------------
--- Engineer: 		Niklas Aldén
+-- Engineer: 		Niklas Aldn
 -- 
 -- Create Date:    	17:12:17 03/20/2015 
 -- Module Name:    	ac97_top - Behavioral 
@@ -14,6 +14,7 @@ entity ac97_top is
     Port ( 	clk 				: in std_logic;						-- clock
 			rstn 				: in std_logic;						-- reset, active low
 			i_volume 			: in std_logic_vector(4 downto 0);	-- volume, set by user
+			i_agc_enable		: in std_logic;
 			i_sdata_in 			: in std_logic;						-- input data from codec
 			o_sdata_out 		: out std_logic;					-- output data to codec
 			o_sync 				: out std_logic;					-- sync signal to codec
@@ -31,11 +32,12 @@ end ac97_top;
 
 architecture Behavioral of ac97_top is
 
-	component ac97_cmd is
+	component ac97_comb is
 		Port ( 	clk 				: in std_logic;
 				rstn 				: in std_logic;
 				i_ac97_ctrl_ready 	: in std_logic;
 				i_volume 			: in std_logic_vector(4 downto 0);
+				i_agc_enable		: in std_logic;
 				o_cmd_addr 			: out std_logic_vector(7 downto 0);
 				o_cmd_data 			: out std_logic_vector(15 downto 0)
 			   );
@@ -62,20 +64,21 @@ architecture Behavioral of ac97_top is
 				);
 	end component;
 	
--- COMMAND -> CONTROLLER
+-- COMBINATORIAL FSM -> CONTROLLER
 	signal cmd_addr_comb_ctrl 	: std_logic_vector(7 downto 0);
 	signal cmd_data_comb_ctrl 	: std_logic_vector(15 downto 0);
--- CONTROLLER -> COMMAND
+-- CONTROLLER -> COMBINATORIAL FSM
 	signal ready_ctrl_comb 		: std_logic;
 
 begin
 
-	ac97_cmd_inst : ac97_cmd
+	ac97_comb_inst : ac97_comb
 		port map (
 			clk 				=> clk,
 			rstn 				=> rstn,
 			i_ac97_ctrl_ready 	=> ready_ctrl_comb,
 			i_volume 			=> i_volume,
+			i_agc_enable		=> i_agc_enable,
 			o_cmd_addr 			=> cmd_addr_comb_ctrl,
 			o_cmd_data 			=> cmd_data_comb_ctrl
 			);
